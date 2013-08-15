@@ -20,23 +20,7 @@ For settings initialization, see huxley/cmdline.py
 
 from huxley.consts import modes
 from huxley import run
-
-import os
-import jsonpickle
-
-def _write_recorded_run(filename, output):
-    """
-    Serialize a recorded run to a JSON file.
-    """
-    try:
-        with open(os.path.join(filename, 'record.json'), 'w') as fp:
-                fp.write(
-                    jsonpickle.encode(
-                        output
-                    )
-                ) # todo version the recorded run, and validate it
-    except Exception as exc: # todo how can this fail
-        raise exc
+from huxley import util
 
 
 def dispatch(driver, mode, tests):
@@ -56,7 +40,7 @@ def dispatch(driver, mode, tests):
             output = funcs[mode][0](driver, *funcs[mode][1](test))
             run_log[name] = output
             if mode in (modes.RECORD, modes.RERECORD):
-                _write_recorded_run(test.settings.path, output)
+                util.write_recorded_run(test.settings.path, output)
     except Exception as exc: # todo how can this fail
         raise exc
     return run_log

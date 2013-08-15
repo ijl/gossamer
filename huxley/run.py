@@ -101,6 +101,13 @@ class Test(object):
         self.screensize = screensize
         self.steps = steps or []
 
+    def __repr__(self):
+        return "%s: %s %r" % (
+            self.__class__.__name__,
+            self.screensize,
+            self.steps
+        )
+
 
 class TestRun(object):
     """

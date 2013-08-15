@@ -29,6 +29,7 @@ import jsonpickle
 
 from huxley.consts import modes, exits
 from huxley import run
+from huxley import util
 from huxley.main import dispatch
 from huxley.version import __version__
 
@@ -42,6 +43,13 @@ class TestRun(object): # check this name...
     def __init__(self, settings, recorded_run=None):
         self.settings = settings
         self.recorded_run = recorded_run
+
+    def __repr__(self):
+        return "%s: %r, %r" % (
+            self.__class__.__name__, 
+            self.settings, 
+            self.recorded_run
+        )
 
 
 class Settings(object): # pylint: disable=R0903,R0902
@@ -70,7 +78,7 @@ class Settings(object): # pylint: disable=R0903,R0902
         return (self.url, self.postdata)
 
     def __repr__(self):
-        return '%s %r' % (self.__class__.__name__, self.__dict__)
+        return '%s: %r' % (self.__class__.__name__, self.__dict__)
 
 DRIVERS = {
     'firefox': webdriver.Firefox,
@@ -101,19 +109,6 @@ DEFAULTS = {
     'screensize': DEFAULT_SCREENSIZE,
     # etc.
 }
-
-def _recorded_run(filename):
-    """
-    Load a serialized run. TODO in versioning, validation, etc.
-    """
-    try:
-        with open(os.path.join(filename, 'record.json'), 'r') as fp:
-            recorded_run = jsonpickle.decode(fp.read())
-        return recorded_run
-    except ValueError as exc:
-        raise # todo error
-    except Exception as exc:
-        raise exc
 
 def _postdata(arg):
     """
@@ -234,9 +229,12 @@ def initialize(
         print 'Huxley ' + __version__
         return exits.OK
 
+    cwd = os.getcwd()
+
     test_files = []
-    for name in testfile.split(','):
-        test_files.extend(glob.glob(name))
+    for pattern in testfile.split(','):
+        for name in glob.glob(pattern):
+            test_files.append(os.path.join(cwd, name))
     if len(test_files) == 0:
         print 'No Huxleyfile found'
         return exits.ERROR
@@ -279,14 +277,12 @@ def initialize(
                 defaults=DEFAULTS,
                 allow_no_value=True
             )
-
             config.read([file_name])
+
             for testname in config.sections():
                 if names and (testname not in names):
                     continue
-                print 'Running test:', testname
                 test_config = dict(config.items(testname))
-                # print test_config
                 url = config.get(testname, 'url')
                 default_filename = os.path.join(
                     os.path.dirname(file_name),
@@ -296,6 +292,8 @@ def initialize(
                     'filename',
                     default_filename
                 )
+                if not os.path.isabs(filename):
+                    filename = os.path.join(cwd, filename)
                 sleepfactor = sleepfactor or float(test_config.get(
                     'sleepfactor',
                     1.0
@@ -304,19 +302,6 @@ def initialize(
                     'screensize',
                     '1024x768'
                 )
-
-                settings = Settings(
-                    url=url,
-                    mode=mode,
-                    path=filename,
-                    sleepfactor=sleepfactor,
-                    screensize=screensize,
-                    postdata=postdata or test_config.get('postdata'),
-                    diffcolor=diffcolor,
-                    save_diff=save_diff
-                )
-                # print settings
-                # print '-'*70
 
                 # TODO: not do this here; handle non-empty dir, 
                 #       incl. 0-length .json file as failed record
@@ -332,9 +317,19 @@ def initialize(
                 # TODO: use only absolute paths past the initialize function
 
                 tests[testname] = TestRun(
-                    settings, 
-                    _recorded_run(filename) if mode != modes.RECORD else None
+                    Settings(
+                        url=url,
+                        mode=mode,
+                        path=filename,
+                        sleepfactor=sleepfactor,
+                        screensize=screensize,
+                        postdata=postdata or test_config.get('postdata'),
+                        diffcolor=diffcolor,
+                        save_diff=save_diff
+                    ), 
+                    util.read_recorded_run(filename) if mode != modes.RECORD else None
                 )
+                # print tests[testname]
 
         # run the tests
         logs = dispatch(driver, mode, tests)
