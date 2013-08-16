@@ -21,7 +21,8 @@ import unittest
 import sys
 
 from huxley.main import dispatch
-from huxley.consts import modes, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL
+from huxley.consts import modes, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL, \
+    DEFAULT_BROWSER
 from huxley import util
 
 # Python unittest integration. These fail when the screen shots change, and they
@@ -34,6 +35,9 @@ class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
     local_webdriver_url = LOCAL_WEBDRIVER_URL
     remote_webdriver_url = REMOTE_WEBDRIVER_URL
 
+    def setUp(self):
+        super(HuxleyTestCase, self).setup(self)
+
     def huxley(self, filename, url, postdata=None, sleepfactor=1.0):
         msg = 'Running Huxley test: ' + os.path.basename(filename)
         print
@@ -41,7 +45,7 @@ class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
         print msg
         print '-' * len(msg)
 
-        browser = 'firefox' # todo
+        browser = DEFAULT_BROWSER # todo
         cwd = os.getcwd() # os.abspath(filename)?
 
         try:
@@ -56,6 +60,9 @@ class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
             #     'Please be sure to review and check in.')
         finally:
             driver.quit()
+
+    def tearDown(self):
+        pass
 
 
 def unittest_main(module='__main__'):
