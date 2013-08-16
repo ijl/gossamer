@@ -128,13 +128,12 @@ def rerecord(driver, settings, record): # pylint: disable=W0621
     """
     # did I break something by removing the driver=remote_driver pass from #record?
     # what does this do?
-    print
-    print 'Playing back to ensure the test is correct'
-    print
+    sys.stdout.write('Playing back to ensure the test is correct ... ')
+    sys.stdout.flush()
     return playback(settings, driver, record)
 
 
-def process_steps(events):
+def process_steps(steps, events):
     """
     process events from the user agent into our objects
     todo: combine multiple scroll events?
@@ -145,7 +144,9 @@ def process_steps(events):
             steps.append(ClickTestStep(timestamp - start_time, Point(*params)))
         elif action == 'keyup':
             steps.append(KeyTestStep(timestamp - start_time, params))
-    return steps
+
+    # TODO, steps: truncate events after last screenshot
+    return sorted(steps, key=operator.attrgetter('offset_time'))
 
 
 _getHuxleyEvents = """
@@ -177,7 +178,6 @@ def record(driver, settings):
     """
     Record a given test.
     """
-    print 'Begin record\n'
     driver.set_window_size(*settings.screensize)
     navigate(driver, settings.navigate()) # was just url, not (url, postdata)?
     start_time = driver.execute_script('return Date.now();')
@@ -185,10 +185,11 @@ def record(driver, settings):
 
     steps = []
     while True:
-        if util.prompt("Press enter to take a screenshot, "
-            "or type Q if you're done.", ('Q', 'q')):
+        if util.prompt("\nPress enter to take a screenshot, "
+            "or type Q if you're done.", ('Q', 'q'), testname=settings.name):
             break
         sys.stdout.write('Taking screenshot ... ')
+        sys.stdout.flush()
         screenshot_step = ScreenshotTestStep(
             driver.execute_script('return Date.now();') - start_time, 
             len(steps)
@@ -196,16 +197,21 @@ def record(driver, settings):
         driver.save_screenshot(screenshot_step.get_path(settings))
         steps.append(screenshot_step)
         sys.stdout.write(
-            '%d screenshot%s taken\n\n' % \
+            '%d screenshot%s in test.\n' % \
             (len(steps), 's' if len(steps) > 1 else '')
+        )
+    if len(steps) == 0:
+        raise NoScreenshotsRecorded(
+            'No screenshots recorded for %s--please use at least one' % \
+                settings.name
         )
 
     # now capture the events
     try:
         events = driver.execute_script('return window._getHuxleyEvents();')
-        print '-'*70
-        print events
-        print '-'*70
+        # print '-'*70
+        # print events
+        # print '-'*70
     except:
         # todo fix...
         raise TestError(
@@ -217,29 +223,20 @@ def record(driver, settings):
                                     'A script on this page may be busy, '
                                     'or it may have stopped responding.'):
         raise TestError('Event-capturing script was unresponsive.')
-
-    if len(events) == 0:
-        raise NoScreenshotsRecorded(
-            'No screenshots recorded for %s--please use at least one' % \
-                settings.name
-        )
-
-    steps.append(process_steps(events))
-
-    # TODO, steps: truncate events after last screenshot
     
     record = Test( # pylint: disable=W0621
-        screensize=settings.screensize,
-        steps = sorted(steps, key=operator.attrgetter('offset_time'))
+        screensize = settings.screensize,
+        steps = process_steps(steps, events)
     )
 
     util.prompt(
         "\n"
-        "Up next, we'll re-run your actions to generate screenshots "
-        "to ensure they are pixel-perfect when running automated. " 
-        "Press enter to start."
+        "Up next, we'll re-run your actions to generate screenshots to "
+        "ensure they \nare pixel-perfect when running automated. Press "
+        "enter to start.", testname=settings.name
     )
-    print rerecord(settings, driver, record)
+    rerecord(settings, driver, record)
+    sys.stdout.write('ok.\n')
 
     return record
 
@@ -249,6 +246,11 @@ def playback(driver, settings, record): # pylint: disable=W0621
     """
     Playback a given test.
     """
+    if settings.desc:
+        sys.stdout.write('%s ... ' % settings.desc)
+    else:
+        sys.stdout.write('Playing back %s ... ' % settings.name)
+    sys.stdout.flush()
     driver.set_window_size(*record.screensize)
     navigate(driver, settings.navigate())
     last_offset_time = 0
@@ -258,5 +260,7 @@ def playback(driver, settings, record): # pylint: disable=W0621
         time.sleep(float(sleep_time) / 1000)
         step.execute(driver, settings)
         last_offset_time = step.offset_time
+    sys.stdout.write('ok.\n')
+    sys.stdout.flush()
     return None
 

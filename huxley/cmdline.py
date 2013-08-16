@@ -58,9 +58,10 @@ class Settings(object): # pylint: disable=R0903,R0902
     def __init__(self, 
             name, url, mode, path,
             sleepfactor, screensize, postdata,
-            diffcolor, save_diff
+            diffcolor, save_diff, desc=None
         ): # pylint: disable=R0913
         self.name = name
+        self.desc = desc
         self.url = url
         self.mode = mode
         self.path = path
@@ -193,6 +194,8 @@ def initialize(
         print 'Huxley ' + __version__
         return exits.OK
 
+    sys.stdout.write('Initializing huxley and opening webdriver...\n')
+    sys.stdout.flush()
 
     names = names.split(',') if names else None
 
@@ -239,6 +242,7 @@ def initialize(
             raise
             # print str(exc)
             # return exits.ERROR
+        sys.stdout.write('\n')
         return exits.OK
     finally:
         try:

@@ -50,7 +50,7 @@ def read_recorded_run(filename):
     """
     try:
         if os.path.getsize(filename) <= 0:
-            raise errors.RecorcedRunEmpty('%s is empty' % filename)
+            raise errors.RecordedRunEmpty('%s is empty' % filename)
     except OSError:
         raise errors.RecordedRunDoesNotExist('%s does not exist' % filename)
     try:
@@ -58,10 +58,10 @@ def read_recorded_run(filename):
             recorded_run = jsonpickle.decode(fp.read())
         # todo validate
         return recorded_run
-    except ValueError as exc:
+    except ValueError as exc: # couldn't parse
         raise # todo error
-    except Exception as exc:
-        raise exc
+    except IOError as exc:
+        raise # todo error
 
 
 def write_recorded_run(filename, output):
@@ -100,14 +100,14 @@ def get_driver(browser, local_webdriver=None, remote_webdriver=None):
     return driver
 
 
-def prompt(display, options=None):
+def prompt(display, options=None, testname=None):
     """
     Given text as `display` and optionally `options` as an 
     iterable containing acceptable input, returns a boolean 
     of whether the prompt was met.
     """
     print display
-    inp = raw_input('huxley >>> ')
+    inp = raw_input('huxley%s >>> ' % (':'+testname if testname else ''))
     if options:
         if inp in options:
             return True
@@ -128,6 +128,34 @@ def _postdata(arg):
             return data
     return None
 
+
+def verify_and_prepare_files(filename, mode):
+    """
+    TODO
+    """
+    if os.path.exists(filename):
+        if mode == modes.RECORD: # todo weirdness with rerecord
+            if os.path.getsize(filename) > 0:
+                if not overwrite and not prompt(
+                    '\n%s already exists--clear existing '
+                    'screenshots and overwrite test? [Y/n] ' \
+                        % testname, 
+                    ('Y', 'y')
+                    ):
+                    raise # todo error
+                for each in os.listdir(filename):
+                    if each.split('.')[-1] in ('png', 'json'):
+                        os.remove(os.path.join(filename, each))
+    else:
+        if mode == modes.RECORD:
+            try:
+                os.makedirs(filename)
+            except Exception as exc:
+                raise
+        else:
+            print '%s does not exist' % filename
+            raise Exception # todo
+    return True
 
 def make_tests(test_files, mode, cwd, **kwargs):
     """
@@ -174,35 +202,13 @@ def make_tests(test_files, mode, cwd, **kwargs):
             if not os.path.isabs(filename):
                 filename = os.path.join(cwd, filename)
 
-            if os.path.exists(filename):
-                if mode == modes.RECORD: # todo weirdness with rerecord
-                    if os.path.getsize(filename) > 0 and not overwrite:
-                        if not prompt(
-                            '%s already exists--clear existing '
-                            'screenshots and overwrite test? [Y/n] ' \
-                                % testname, 
-                            ('Y', 'y')
-                            ):
-                            return exits.ERROR
-                        for each in os.listdir(filename):
-                            if each.split('.')[-1] in ('png', 'json'):
-                                os.remove(os.path.join(filename, each))
-            else:
-                if mode == modes.RECORD:
-                    try:
-                        os.makedirs(filename)
-                    except Exception as exc:
-                        print str(exc)
-                        raise
-                else:
-                    print '%s does not exist' % filename
-                    return exits.ERROR
+            verify_and_prepare_files(filename, mode)
 
             # load recorded runs if appropriate
             if mode != modes.RECORD:
                 try:
                     recorded_run = read_recorded_run(filename)
-                except errors.RecorcedRunEmpty:
+                except errors.RecordedRunEmpty:
                     print 'Recorded run for %s is empty--please rerecord' % \
                         (testname, )
                     return exits.RECORDED_RUN_ERROR
@@ -224,6 +230,7 @@ def make_tests(test_files, mode, cwd, **kwargs):
 
             settings = Settings(
                 name=testname,
+                desc=test_config.get('desc', None),
                 url=url,
                 mode=mode,
                 path=filename,
