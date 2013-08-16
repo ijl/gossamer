@@ -16,12 +16,13 @@
 Record, playback, &c a given test.
 """
 
+import sys
 import json
 import operator
 import time
 
 # from huxley.consts import modes
-from huxley.errors import TestError, NoStepsRecorded
+from huxley.errors import TestError, NoScreenshotsRecorded
 from huxley.steps import ScreenshotTestStep, ClickTestStep, KeyTestStep
 from huxley import util
 
@@ -133,56 +134,100 @@ def rerecord(driver, settings, record): # pylint: disable=W0621
     return playback(settings, driver, record)
 
 
+def process_steps(events):
+    """
+    process events from the user agent into our objects
+    todo: combine multiple scroll events?
+    """
+    steps = []
+    for (timestamp, action, params) in events:
+        if action == 'click':
+            steps.append(ClickTestStep(timestamp - start_time, Point(*params)))
+        elif action == 'keyup':
+            steps.append(KeyTestStep(timestamp - start_time, params))
+    return steps
+
+
+_getHuxleyEvents = """
+(function() {
+    var events = [];
+
+    window.addEventListener(
+        'click',
+        function (e) { events.push([Date.now(), 'click', [e.clientX, e.clientY]]); },
+        true
+    );
+    window.addEventListener(
+        'keyup',
+        function (e) { events.push([Date.now(), 'keyup', String.fromCharCode(e.keyCode)]); },
+        true
+    );
+    window.addEventListener(
+        'scroll',
+        function(e) { events.push([Date.now(), 'scroll', [this.pageXOffset, this.pageYOffset]]); },
+        true
+    );
+
+    window._getHuxleyEvents = function() { return events };
+})();
+"""
+
+
 def record(driver, settings):
     """
     Record a given test.
     """
-    print 'Begin record'
+    print 'Begin record\n'
     driver.set_window_size(*settings.screensize)
     navigate(driver, settings.navigate()) # was just url, not (url, postdata)?
     start_time = driver.execute_script('return Date.now();')
-    driver.execute_script('''
-(function() {
-var events = [];
-window.addEventListener('click', function (e) { events.push([Date.now(), 'click', [e.clientX, e.clientY]]); }, true);
-window.addEventListener('keyup', function (e) { events.push([Date.now(), 'keyup', String.fromCharCode(e.keyCode)]); }, true);
-window._getHuxleyEvents = function() { return events; };
-})();
-''')
+    driver.execute_script(_getHuxleyEvents)
+
     steps = []
     while True:
         if util.prompt("Press enter to take a screenshot, "
-            "or type Q+enter if you're done\n", ('Q', 'q')):
+            "or type Q if you're done.", ('Q', 'q')):
             break
+        sys.stdout.write('Taking screenshot ... ')
         screenshot_step = ScreenshotTestStep(
             driver.execute_script('return Date.now();') - start_time, 
             len(steps)
         )
         driver.save_screenshot(screenshot_step.get_path(settings))
         steps.append(screenshot_step)
-        print len(steps), 'screenshots taken'
+        sys.stdout.write(
+            '%d screenshot%s taken\n\n' % \
+            (len(steps), 's' if len(steps) > 1 else '')
+        )
 
     # now capture the events
     try:
         events = driver.execute_script('return window._getHuxleyEvents();')
+        print '-'*70
+        print events
+        print '-'*70
     except:
+        # todo fix...
         raise TestError(
             'Could not call window._getHuxleyEvents(). '
             'This usually means you navigated to a new page, '
             'which is currently unsupported.'
         )
-    for (timestamp, action, params) in events:
-        if action == 'click':
-            steps.append(ClickTestStep(timestamp - start_time, Point(*params)))
-        elif action == 'keyup':
-            steps.append(KeyTestStep(timestamp - start_time, params))
+    if type(events) in (unicode, str) and events.startswith(
+                                    'A script on this page may be busy, '
+                                    'or it may have stopped responding.'):
+        raise TestError('Event-capturing script was unresponsive.')
 
-    if len(steps) == 0:
-        raise NoStepsRecorded(
-            'No steps recorded for %s--please use at least one' % \
+    if len(events) == 0:
+        raise NoScreenshotsRecorded(
+            'No screenshots recorded for %s--please use at least one' % \
                 settings.name
         )
 
+    steps.append(process_steps(events))
+
+    # TODO, steps: truncate events after last screenshot
+    
     record = Test( # pylint: disable=W0621
         screensize=settings.screensize,
         steps = sorted(steps, key=operator.attrgetter('offset_time'))
@@ -191,7 +236,7 @@ window._getHuxleyEvents = function() { return events; };
     util.prompt(
         "\n"
         "Up next, we'll re-run your actions to generate screenshots "
-        "to ensure they are pixel-perfect when running automated." 
+        "to ensure they are pixel-perfect when running automated. " 
         "Press enter to start."
     )
     print rerecord(settings, driver, record)

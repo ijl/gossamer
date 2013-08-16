@@ -22,9 +22,9 @@ class TestError(RuntimeError):
     """
     pass
 
-class NoStepsRecorded(Exception):
+class NoScreenshotsRecorded(Exception):
     """
-    A test is recorded with no steps made.
+    A test is recorded with no screenshots made.
     """
     pass
 

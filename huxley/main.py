@@ -13,9 +13,11 @@
 # limitations under the License.
 
 """
-Take in configured settings, and run tests and such. Or, it should do this.
+:func:`.dispatch` runs tests that have already been setup.
 
-For settings initialization, see huxley/cmdline.py
+Tests can be setup through the command-line interface via 
+:func:`huxley.cmdline.main` and through unittest via 
+:class:`huxley.integration.HuxleyTestCase`.
 """
 
 from huxley.consts import modes
@@ -42,8 +44,8 @@ def dispatch(driver, mode, tests):
             run_log[name] = output
             if mode in (modes.RECORD, modes.RERECORD):
                 util.write_recorded_run(test.settings.path, output)
-    except errors.NoStepsRecorded as exc:
+    except errors.NoScreenshotsRecorded as exc:
         raise
-    except Exception as exc: # todo how can this fail
-        raise exc
+    # except Exception as exc: # todo
+    #     raise exc
     return run_log
