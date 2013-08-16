@@ -37,3 +37,8 @@ class RecordedRunDoesNotExist(Exception):
     """
     A record.json file does not exist.
     """
+
+class DoNotOverwrite(Exception):
+    """
+    User indicates they don't want to overwrite an existing test.
+    """

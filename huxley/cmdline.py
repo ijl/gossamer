@@ -81,9 +81,6 @@ class Settings(object): # pylint: disable=R0903,R0902
         return '%s: %r' % (self.__class__.__name__, self.__dict__)
 
 
-
-
-
 @plac.annotations(
     names = plac.Annotation(
         'Test case name(s) to use, comma-separated',
@@ -223,10 +220,20 @@ def initialize(
         'names', 'local', 'remote', 'postdata', 'sleepfactor', 
         'browser', 'screensize', 'diffcolor', 'save_diff', 'overwrite'
     )
-    options = {key: val for key, val in [(each, locals()[each]) for each in attrs]}
+    options = {
+        key: val for key, val in \
+        [(each, locals()[each]) for each in attrs]
+    }
         
     # make tests using the test_files and mode we've resolved to
-    tests = util.make_tests(test_files, mode, cwd, **options)
+    try:
+        tests = util.make_tests(test_files, mode, cwd, **options)
+    except errors.DoNotOverwrite as exc:
+        print str(exc)
+        return exits.ERROR
+    except (errors.RecordedRunDoesNotExist, errors.RecordedRunEmpty) as exc:
+        print str(exc)
+        return exits.RECORDED_RUN_ERROR 
 
     # driver
     try:
@@ -238,10 +245,6 @@ def initialize(
         except errors.NoScreenshotsRecorded as exc:
             print str(exc)
             return exits.ERROR
-        except Exception as exc: # pylint: disable=W0703
-            raise
-            # print str(exc)
-            # return exits.ERROR
         sys.stdout.write('\n')
         return exits.OK
     finally:

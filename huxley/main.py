@@ -44,8 +44,6 @@ def dispatch(driver, mode, tests):
             run_log[name] = output
             if mode in (modes.RECORD, modes.RERECORD):
                 util.write_recorded_run(test.settings.path, output)
-    except errors.NoScreenshotsRecorded as exc:
+    except errors.NoScreenshotsRecorded:
         raise
-    # except Exception as exc: # todo
-    #     raise exc
     return run_log

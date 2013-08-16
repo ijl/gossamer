@@ -24,7 +24,7 @@ import time
 # from huxley.consts import modes
 from huxley.errors import TestError, NoScreenshotsRecorded
 from huxley.steps import ScreenshotTestStep, ClickTestStep, KeyTestStep
-from huxley import util
+from huxley import util, js
 
 __all__ = ['playback', 'record', 'rerecord', ]
 
@@ -57,18 +57,18 @@ def get_post_js(url, postdata):
         markup += '<input type="hidden" name="%s" />' % k
     markup += '</form>'
 
-    js = 'var container = document.createElement("div"); container.innerHTML = %s;' \
+    script = 'var container = document.createElement("div"); container.innerHTML = %s;' \
             % json.dumps(markup)
 
     for (i, v) in enumerate(postdata.values()):
         if not isinstance(v, basestring):
             # TODO: is there a cleaner way to do this?
             v = json.dumps(v)
-        js += 'container.children[0].children[%d].value = %s;' % (i, json.dumps(v))
+        script += 'container.children[0].children[%d].value = %s;' % (i, json.dumps(v))
 
-    js += 'document.body.appendChild(container);'
-    js += 'container.children[0].submit();'
-    return '(function(){ ' + js + '; })();'
+    script += 'document.body.appendChild(container);'
+    script += 'container.children[0].submit();'
+    return '(function(){ ' + script + '; })();'
 
 
 def navigate(driver, url):
@@ -126,14 +126,10 @@ def rerecord(driver, settings, record): # pylint: disable=W0621
     """
     Rerecord a given test
     """
-    # did I break something by removing the driver=remote_driver pass from #record?
-    # what does this do?
-    sys.stdout.write('Playing back to ensure the test is correct ... ')
-    sys.stdout.flush()
     return playback(settings, driver, record)
 
 
-def process_steps(steps, events):
+def process_steps(steps, events, start_time):
     """
     process events from the user agent into our objects
     todo: combine multiple scroll events?
@@ -149,31 +145,6 @@ def process_steps(steps, events):
     return sorted(steps, key=operator.attrgetter('offset_time'))
 
 
-_getHuxleyEvents = """
-(function() {
-    var events = [];
-
-    window.addEventListener(
-        'click',
-        function (e) { events.push([Date.now(), 'click', [e.clientX, e.clientY]]); },
-        true
-    );
-    window.addEventListener(
-        'keyup',
-        function (e) { events.push([Date.now(), 'keyup', String.fromCharCode(e.keyCode)]); },
-        true
-    );
-    window.addEventListener(
-        'scroll',
-        function(e) { events.push([Date.now(), 'scroll', [this.pageXOffset, this.pageYOffset]]); },
-        true
-    );
-
-    window._getHuxleyEvents = function() { return events };
-})();
-"""
-
-
 def record(driver, settings):
     """
     Record a given test.
@@ -181,7 +152,7 @@ def record(driver, settings):
     driver.set_window_size(*settings.screensize)
     navigate(driver, settings.navigate()) # was just url, not (url, postdata)?
     start_time = driver.execute_script('return Date.now();')
-    driver.execute_script(_getHuxleyEvents)
+    driver.execute_script(js.getHuxleyEvents)
 
     steps = []
     while True:
@@ -226,7 +197,7 @@ def record(driver, settings):
     
     record = Test( # pylint: disable=W0621
         screensize = settings.screensize,
-        steps = process_steps(steps, events)
+        steps = process_steps(steps, events, start_time)
     )
 
     util.prompt(
@@ -236,7 +207,6 @@ def record(driver, settings):
         "enter to start.", testname=settings.name
     )
     rerecord(settings, driver, record)
-    sys.stdout.write('ok.\n')
 
     return record
 
@@ -249,7 +219,7 @@ def playback(driver, settings, record): # pylint: disable=W0621
     if settings.desc:
         sys.stdout.write('%s ... ' % settings.desc)
     else:
-        sys.stdout.write('Playing back %s ... ' % settings.name)
+        sys.stdout.write('Playing back %s ... ' % settings.name) # todo huxleyfile.name
     sys.stdout.flush()
     driver.set_window_size(*record.screensize)
     navigate(driver, settings.navigate())

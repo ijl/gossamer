@@ -54,13 +54,11 @@ def read_recorded_run(filename):
     except OSError:
         raise errors.RecordedRunDoesNotExist('%s does not exist' % filename)
     try:
-        with open(os.path.join(filename, 'record.json'), 'r') as fp:
+        with open(filename, 'r') as fp:
             recorded_run = jsonpickle.decode(fp.read())
         # todo validate
         return recorded_run
-    except ValueError as exc: # couldn't parse
-        raise # todo error
-    except IOError as exc:
+    except ValueError: # couldn't parse
         raise # todo error
 
 
@@ -129,7 +127,7 @@ def _postdata(arg):
     return None
 
 
-def verify_and_prepare_files(filename, mode):
+def verify_and_prepare_files(filename, testname, mode, overwrite):
     """
     TODO
     """
@@ -142,16 +140,17 @@ def verify_and_prepare_files(filename, mode):
                         % testname, 
                     ('Y', 'y')
                     ):
-                    raise # todo error
+                    raise errors.DoNotOverwrite(
+                        "Aborting because we don't wish to overwrite %s." % \
+                        testname
+                    )
                 for each in os.listdir(filename):
                     if each.split('.')[-1] in ('png', 'json'):
                         os.remove(os.path.join(filename, each))
     else:
         if mode == modes.RECORD:
-            try:
-                os.makedirs(filename)
-            except Exception as exc:
-                raise
+            os.makedirs(filename)
+            # todo exc
         else:
             print '%s does not exist' % filename
             raise Exception # todo
@@ -202,20 +201,11 @@ def make_tests(test_files, mode, cwd, **kwargs):
             if not os.path.isabs(filename):
                 filename = os.path.join(cwd, filename)
 
-            verify_and_prepare_files(filename, mode)
+            verify_and_prepare_files(filename, testname, mode, overwrite)
 
             # load recorded runs if appropriate
             if mode != modes.RECORD:
-                try:
-                    recorded_run = read_recorded_run(filename)
-                except errors.RecordedRunEmpty:
-                    print 'Recorded run for %s is empty--please rerecord' % \
-                        (testname, )
-                    return exits.RECORDED_RUN_ERROR
-                except errors.RecordedRunDoesNotExist:
-                    print 'Recorded run for %s does not exist' % \
-                        (testname, )
-                    return exits.RECORDED_RUN_ERROR
+                recorded_run = read_recorded_run(os.path.join(filename, 'record.json'))
             else:
                 recorded_run = None
 
