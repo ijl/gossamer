@@ -25,13 +25,11 @@ import sys
 import plac
 from selenium import webdriver
 
-import jsonpickle
-
 from huxley.consts import modes, exits
-from huxley import run
 from huxley import util
 from huxley.main import dispatch
 from huxley.version import __version__
+from huxley import errors
 
 
 class TestRun(object): # check this name...
@@ -58,10 +56,11 @@ class Settings(object): # pylint: disable=R0903,R0902
     """
 
     def __init__(self, 
-            url, mode, path,
+            name, url, mode, path,
             sleepfactor, screensize, postdata,
             diffcolor, save_diff
         ): # pylint: disable=R0913
+        self.name = name
         self.url = url
         self.mode = mode
         self.path = path
@@ -231,6 +230,8 @@ def initialize(
 
     cwd = os.getcwd()
 
+    names = names.split(',') if names else None
+
     test_files = []
     for pattern in testfile.split(','):
         for name in glob.glob(pattern):
@@ -267,8 +268,6 @@ def initialize(
         postdata = _postdata(postdata)
         diffcolor = tuple(int(x) for x in (diffcolor or DEFAULT_DIFFCOLOR).split(','))
 
-        new_screenshots = False
-
         tests = {}
 
         for file_name in test_files:
@@ -280,10 +279,16 @@ def initialize(
             config.read([file_name])
 
             for testname in config.sections():
+
                 if names and (testname not in names):
                     continue
+                if testname in tests:
+                    print 'Duplicate test name %s' % testname
+                    return exits.ERROR
+
                 test_config = dict(config.items(testname))
                 url = config.get(testname, 'url')
+
                 default_filename = os.path.join(
                     os.path.dirname(file_name),
                     testname + '.huxley'
@@ -294,6 +299,47 @@ def initialize(
                 )
                 if not os.path.isabs(filename):
                     filename = os.path.join(cwd, filename)
+
+
+                if os.path.exists(filename):
+                    if mode == modes.RECORD: # todo weirdness with rerecord
+                        if os.path.getsize(filename) > 0:
+                            if not util.prompt(
+                                '%s already exists--clear existing '
+                                'screenshots and overwrite test? [Y/n] ' \
+                                    % testname, 
+                                ('Y', 'y')
+                                ):
+                                return exits.ERROR # todo
+                            for each in os.listdir(filename):
+                                if each.split('.')[-1] in ('png', 'json'):
+                                    os.remove(os.path.join(filename, each))
+                else:
+                    if mode == modes.RECORD:
+                        try:
+                            os.makedirs(filename)
+                        except Exception as exc:
+                            print str(exc)
+                            raise
+                    else:
+                        print '%s does not exist' % filename
+                        return exits.ERROR # todo
+
+                # load recorded runs if appropriate
+                if mode != modes.RECORD:
+                    try:
+                        recorded_run = util.read_recorded_run(filename)
+                    except errors.RecorcedRunEmpty:
+                        print 'Recorded run for %s is empty--please rerecord' % \
+                            (testname, )
+                        return exits.RECORDED_RUN_ERROR
+                    except errors.RecordedRunDoesNotExist:
+                        print 'Recorded run for %s does not exist' % \
+                            (testname, )
+                        return exits.RECORDED_RUN_ERROR
+                else:
+                    recorded_run = None
+
                 sleepfactor = sleepfactor or float(test_config.get(
                     'sleepfactor',
                     1.0
@@ -303,39 +349,33 @@ def initialize(
                     '1024x768'
                 )
 
-                # TODO: not do this here; handle non-empty dir, 
-                #       incl. 0-length .json file as failed record
-                try:
-                    os.makedirs(filename)
-                except:
-                    pass
-
-                # TODO: not load json here
-                # TODO: paths that (1) read existing JSON and (2) write new JSON should be separated
-                #       so we handle duplicate tests etc. in CLI setup
-
-                # TODO: use only absolute paths past the initialize function
-
-                tests[testname] = TestRun(
-                    Settings(
-                        url=url,
-                        mode=mode,
-                        path=filename,
-                        sleepfactor=sleepfactor,
-                        screensize=screensize,
-                        postdata=postdata or test_config.get('postdata'),
-                        diffcolor=diffcolor,
-                        save_diff=save_diff
-                    ), 
-                    util.read_recorded_run(filename) if mode != modes.RECORD else None
+                settings = Settings(
+                    name=testname,
+                    url=url,
+                    mode=mode,
+                    path=filename,
+                    sleepfactor=sleepfactor,
+                    screensize=screensize,
+                    postdata=postdata or test_config.get('postdata'),
+                    diffcolor=diffcolor,
+                    save_diff=save_diff
                 )
+
+                tests[testname] = TestRun(settings, recorded_run)
                 # print tests[testname]
 
         # run the tests
-        logs = dispatch(driver, mode, tests)
-        return exits.OK # todo
+        try:
+            logs = dispatch(driver, mode, tests)
+        except Exception as exc:
+            print str(exc)
+            return exits.ERROR
+        return exits.OK
     finally:
-        driver.quit()
+        try:
+            driver.quit()
+        except UnboundLocalError:
+            pass
 
 def main():
     """

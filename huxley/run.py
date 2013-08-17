@@ -23,10 +23,11 @@ import time
 # from huxley.consts import modes
 from huxley.errors import TestError, NoStepsRecorded
 from huxley.steps import ScreenshotTestStep, ClickTestStep, KeyTestStep
+from huxley import util
 
 __all__ = ['playback', 'record', 'rerecord', ]
 
-class Point(object):
+class Point(object): # pylint: disable=R0903
     """
     Contains validated x, y coordinates for screen position.
     """
@@ -46,21 +47,10 @@ class Point(object):
         return ''.join(('[', str(self.x), ', ', str(self.y), ']'))
 
 
-def prompt(display, options=None):
-    """
-    Given text as `display` and optionally `options` as an 
-    iterable containing acceptable input, returns a boolean 
-    of whether the prompt was met.
-    """
-    inp = raw_input(display)
-    if options:
-        if inp in options:
-            return True
-        return False
-    return True
-
-
 def get_post_js(url, postdata):
+    """
+    TODO docs
+    """
     markup = '<form method="post" action="%s">' % url
     for k in postdata.keys():
         markup += '<input type="hidden" name="%s" />' % k
@@ -81,6 +71,9 @@ def get_post_js(url, postdata):
 
 
 def navigate(driver, url):
+    """
+    TODO docs
+    """
     href, postdata = url
     driver.get('about:blank')
     driver.refresh()
@@ -90,7 +83,7 @@ def navigate(driver, url):
         driver.execute_script(get_post_js(href, postdata))
 
 
-class Test(object):
+class Test(object): # pylint: disable=R0903
     """
     Holds steps and screensize... is serialized as record.json. 
 
@@ -109,12 +102,14 @@ class Test(object):
         )
 
 
-class TestRun(object):
+class TestRun(object): # pylint: disable=R0903
     """
     Specific instance of a test run. Not sure of use now?
     """
 
-    def __init__(self, test, path, url, driver, mode, diffcolor, save_diff):
+    def __init__(self, 
+            test, path, url, driver, mode, diffcolor, save_diff
+        ): # pylint: disable=R0913
         if not isinstance(test, Test):
             raise ValueError('You must provide a Test instance')
         self.test = test
@@ -126,7 +121,7 @@ class TestRun(object):
         self.save_diff = save_diff
 
 
-def rerecord(driver, settings, record):
+def rerecord(driver, settings, record): # pylint: disable=W0621
     """
     Rerecord a given test
     """
@@ -156,7 +151,7 @@ window._getHuxleyEvents = function() { return events; };
 ''')
     steps = []
     while True:
-        if prompt("Press enter to take a screenshot, "
+        if util.prompt("Press enter to take a screenshot, "
             "or type Q+enter if you're done\n", ('Q', 'q')):
             break
         screenshot_step = ScreenshotTestStep(
@@ -183,14 +178,17 @@ window._getHuxleyEvents = function() { return events; };
             steps.append(KeyTestStep(timestamp - start_time, params))
 
     if len(steps) == 0:
-        raise NoStepsRecorded('TODO something about this')
+        raise NoStepsRecorded(
+            'No steps recorded for %s--please use at least one' % \
+                settings.name
+        )
 
-    record = Test(
+    record = Test( # pylint: disable=W0621
         screensize=settings.screensize,
         steps = sorted(steps, key=operator.attrgetter('offset_time'))
     )
 
-    prompt(
+    util.prompt(
         "\n"
         "Up next, we'll re-run your actions to generate screenshots "
         "to ensure they are pixel-perfect when running automated." 
@@ -202,7 +200,7 @@ window._getHuxleyEvents = function() { return events; };
 
 
 
-def playback(driver, settings, record):
+def playback(driver, settings, record): # pylint: disable=W0621
     """
     Playback a given test.
     """

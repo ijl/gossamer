@@ -18,6 +18,7 @@ Utilities.
 
 import os
 import jsonpickle
+from huxley import errors
 
 
 def read_recorded_run(filename):
@@ -25,8 +26,14 @@ def read_recorded_run(filename):
     Load a serialized run. TODO in versioning, validation, etc.
     """
     try:
+        if os.path.getsize(filename) <= 0:
+            raise errors.RecorcedRunEmpty('%s is empty' % filename)
+    except OSError:
+        raise errors.RecordedRunDoesNotExist('%s does not exist' % filename)
+    try:
         with open(os.path.join(filename, 'record.json'), 'r') as fp:
             recorded_run = jsonpickle.decode(fp.read())
+        # todo validate
         return recorded_run
     except ValueError as exc:
         raise # todo error
@@ -40,11 +47,26 @@ def write_recorded_run(filename, output):
     """
     try:
         with open(os.path.join(filename, 'record.json'), 'w') as fp:
-                fp.write(
-                    jsonpickle.encode(
-                        output
-                    )
-                ) # todo version the recorded run, and validate it
+            fp.write(
+                jsonpickle.encode(
+                    output
+                )
+            ) # todo version the recorded run, and validate it
     except Exception as exc: # todo how can this fail
         raise exc
     return True
+
+
+def prompt(display, options=None):
+    """
+    Given text as `display` and optionally `options` as an 
+    iterable containing acceptable input, returns a boolean 
+    of whether the prompt was met.
+    """
+    inp = raw_input(display)
+    if options:
+        if inp in options:
+            return True
+        return False
+    return True
+

@@ -37,5 +37,6 @@ class ExitCodes(object): # pylint: disable=R0903
     NEW_SCREENSHOTS = 1
     ERROR = 2
     ARGUMENT_ERROR = 3 # CLI interface
+    RECORDED_RUN_ERROR = 4 # Something went wrong with loading recorded records
 
 exits = ExitCodes()

@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Objects representing steps a user can take, e.g., make a click, 
+take a screenshot.
+"""
+
 import os
 
 from huxley.consts import modes

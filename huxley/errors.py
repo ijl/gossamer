@@ -27,3 +27,13 @@ class NoStepsRecorded(Exception):
     A test is recorded with no steps made.
     """
     pass
+
+class RecordedRunEmpty(Exception):
+    """
+    A record.json file is empty, meaning a run didn't complete.
+    """
+
+class RecordedRunDoesNotExist(Exception):
+    """
+    A record.json file does not exist.
+    """

@@ -21,6 +21,7 @@ For settings initialization, see huxley/cmdline.py
 from huxley.consts import modes
 from huxley import run
 from huxley import util
+from huxley import errors
 
 
 def dispatch(driver, mode, tests):
@@ -41,6 +42,8 @@ def dispatch(driver, mode, tests):
             run_log[name] = output
             if mode in (modes.RECORD, modes.RERECORD):
                 util.write_recorded_run(test.settings.path, output)
+    except errors.NoStepsRecorded as exc:
+        raise
     except Exception as exc: # todo how can this fail
         raise exc
     return run_log
