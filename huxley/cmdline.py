@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Command-line interface to the app.
+"""
+
 import ConfigParser
 import glob
 import json
@@ -24,7 +28,6 @@ from selenium import webdriver
 import jsonpickle
 
 from huxley.consts import TestRunModes
-from huxley.main import main as huxleymain
 from huxley import run
 from huxley.version import __version__
 
@@ -41,8 +44,8 @@ class Settings(object):
     """
 
     def __init__(self, 
-            url, mode, path, 
-            sleepfactor, screensize, postdata, 
+            url, mode, path,
+            sleepfactor, screensize, postdata,
             diffcolor, save_diff
         ):
         self.url = url
@@ -266,7 +269,16 @@ def _main(
                 save_diff=save_diff
             )
 
-            # TODO prepare all files, check overwriting, &c
+            # TODO: not do this here; handle non-empty dir, 
+            #       incl. 0-length .json file as failed record
+            try:
+                os.makedirs(filename)
+            except:
+                pass
+
+            # TODO: not load json here
+            # TODO: paths that (1) read existing JSON and (2) write new JSON should be separated
+            #       so we handle duplicate tests etc. in CLI setup
 
             if not record:
                 try:

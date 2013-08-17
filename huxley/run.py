@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Record, playback, &c a given test.
+"""
+
 import json
 import operator
 import os
@@ -24,8 +28,14 @@ from huxley.steps import ScreenshotTestStep, ClickTestStep, KeyTestStep
 __all__ = ['playback', 'record', 'rerecord', ]
 
 class Point(object):
+    """
+    Contains validated x, y coordinates for screen position.
+    """
 
     def __init__(self, x, y):
+        """
+        Stores x and y coordinates. They cannot be negative.
+        """
         if x < 0 or y < 0:
             raise ValueError(
                 'Coordinates [%s, %s] cannot be negative' % (x, y)
@@ -38,6 +48,11 @@ class Point(object):
 
 
 def prompt(display, options=None):
+    """
+    Given text as `display` and optionally `options` as an 
+    iterable containing acceptable input, returns a boolean 
+    of whether the prompt was met.
+    """
     inp = raw_input(display)
     if options:
         if inp in options:
@@ -52,7 +67,8 @@ def get_post_js(url, postdata):
         markup += '<input type="hidden" name="%s" />' % k
     markup += '</form>'
 
-    js = 'var container = document.createElement("div"); container.innerHTML = %s;' % json.dumps(markup)
+    js = 'var container = document.createElement("div"); container.innerHTML = %s;' \
+            % json.dumps(markup)
 
     for (i, v) in enumerate(postdata.values()):
         if not isinstance(v, basestring):
@@ -76,12 +92,22 @@ def navigate(driver, url):
 
 
 class Test(object):
+    """
+    Holds steps and screensize... is serialized as record.json. 
+
+    TODO: why only those two attrs?
+    """
+
     def __init__(self, screensize):
         self.steps = []
         self.screensize = screensize
 
 
 class TestRun(object):
+    """
+    Specific instance of a test run. Not sure of use now?
+    """
+    
     def __init__(self, test, path, url, driver, mode, diffcolor, save_diff):
         if not isinstance(test, Test):
             raise ValueError('You must provide a Test instance')
@@ -195,3 +221,4 @@ def playback(settings, driver, record):
         step.execute(driver, settings)
         last_offset_time = step.offset_time
     return 0
+
