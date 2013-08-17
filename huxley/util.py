@@ -106,7 +106,8 @@ def prompt(display, options=None):
     iterable containing acceptable input, returns a boolean 
     of whether the prompt was met.
     """
-    inp = raw_input(display)
+    print display
+    inp = raw_input('huxley >>> ')
     if options:
         if inp in options:
             return True
@@ -141,6 +142,7 @@ def make_tests(test_files, mode, cwd, **kwargs):
 
     tests = {}
     names = kwargs.pop('names')
+    overwrite = kwargs.get('overwrite', False)
 
     for file_name in test_files:
 
@@ -174,7 +176,7 @@ def make_tests(test_files, mode, cwd, **kwargs):
 
             if os.path.exists(filename):
                 if mode == modes.RECORD: # todo weirdness with rerecord
-                    if os.path.getsize(filename) > 0:
+                    if os.path.getsize(filename) > 0 and not overwrite:
                         if not prompt(
                             '%s already exists--clear existing '
                             'screenshots and overwrite test? [Y/n] ' \

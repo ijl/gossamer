@@ -24,8 +24,9 @@ import plac
 
 from huxley.consts import modes, exits, \
     DEFAULT_WEBDRIVER, DEFAULT_TESTFILE, \
-    DEFAULT_DIFFCOLOR, DEFAULT_SCREENSIZE
-from huxley import util
+    DEFAULT_DIFFCOLOR, DEFAULT_SCREENSIZE, \
+    DEFAULT_SLEEPFACTOR, DEFAULT_BROWSER
+from huxley import util, errors
 from huxley.main import dispatch
 from huxley.version import __version__
 
@@ -34,7 +35,7 @@ class TestRun(object):  # pylint: disable=R0903
     # check this name...
     """
     Object to be passed into dispatch... containing all information 
-    run a test, minus mode, since it's effectively global.
+    to run (and repeat, if persisted) a test.
     """
 
     def __init__(self, settings, recorded_run=None):
@@ -79,8 +80,7 @@ class Settings(object): # pylint: disable=R0903,R0902
         return '%s: %r' % (self.__class__.__name__, self.__dict__)
 
 
-DEFAULT_SLEEPFACTOR = 1.0
-DEFAULT_BROWSER = 'firefox'
+
 
 
 @plac.annotations(
@@ -152,6 +152,11 @@ DEFAULT_BROWSER = 'firefox'
     #     'flag', 'a' # todo
     # ),
 
+    overwrite = plac.Annotation(
+        'Overwrite existing tests without asking',
+        'flag', 'o'
+    ),
+
     version = plac.Annotation(
         'Get the current version',
         'flag', 'version'
@@ -173,6 +178,7 @@ def initialize(
         screensize=None,
         diffcolor=None,
         save_diff=False,
+        overwrite=False,
         version=False
     ): # pylint: disable=R0913,W0613
         # autorerecord=False,
@@ -212,7 +218,7 @@ def initialize(
 
     attrs = (
         'names', 'local', 'remote', 'postdata', 'sleepfactor', 
-        'browser', 'screensize', 'diffcolor', 'save_diff'
+        'browser', 'screensize', 'diffcolor', 'save_diff', 'overwrite'
     )
     options = {key: val for key, val in [(each, locals()[each]) for each in attrs]}
         
@@ -226,6 +232,9 @@ def initialize(
         # run the tests
         try:
             logs = dispatch(driver, mode, tests)
+        except errors.NoScreenshotsRecorded as exc:
+            print str(exc)
+            return exits.ERROR
         except Exception as exc: # pylint: disable=W0703
             raise
             # print str(exc)
