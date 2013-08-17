@@ -18,7 +18,6 @@ Record, playback, &c a given test.
 
 import json
 import operator
-import os
 import time
 
 # from huxley.consts import modes
@@ -98,9 +97,9 @@ class Test(object):
     TODO: why only those two attrs?
     """
 
-    def __init__(self, screensize):
-        self.steps = []
+    def __init__(self, screensize, steps=None):
         self.screensize = screensize
+        self.steps = steps or []
 
 
 class TestRun(object):
@@ -120,36 +119,23 @@ class TestRun(object):
         self.save_diff = save_diff
 
 
-def rerecord(settings, driver, record):
+def rerecord(driver, settings, record):
     """
     Rerecord a given test
     """
     # did I break something by removing the driver=remote_driver pass from #record?
+    # what does this do?
     print
     print 'Playing back to ensure the test is correct'
     print
-    playback(settings, driver, record)
+    return playback(settings, driver, record)
 
 
-def record(settings, driver):
+def record(driver, settings):
     """
     Record a given test.
     """
     print 'Begin record'
-    try:
-        os.makedirs(settings.path) # todo doesn't belong here
-    except:
-        pass
-    record = Test(settings.screensize)
-    # run = TestRun(
-    #     record,
-    #     settings.path,
-    #     settings.url,
-    #     driver,
-    #     modes.RECORD,
-    #     settings.diffcolor,
-    #     settings.save_diff
-    # )
     driver.set_window_size(*settings.screensize)
     navigate(driver, settings.navigate()) # was just url, not (url, postdata)?
     start_time = driver.execute_script('return Date.now();')
@@ -192,7 +178,10 @@ window._getHuxleyEvents = function() { return events; };
     if len(steps) == 0:
         raise NoStepsRecorded('TODO something about this')
 
-    record.steps = sorted(steps, key=operator.attrgetter('offset_time'))
+    record = Test(
+        screensize=settings.screensize,
+        steps = sorted(steps, key=operator.attrgetter('offset_time'))
+    )
 
     prompt(
         "\n"
@@ -206,7 +195,7 @@ window._getHuxleyEvents = function() { return events; };
 
 
 
-def playback(settings, driver, record):
+def playback(driver, settings, record):
     """
     Playback a given test.
     """
@@ -219,5 +208,5 @@ def playback(settings, driver, record):
         time.sleep(float(sleep_time) / 1000)
         step.execute(driver, settings)
         last_offset_time = step.offset_time
-    return 0
+    return None
 

@@ -18,16 +18,53 @@ Take in configured settings, and run tests and such. Or, it should do this.
 For settings initialization, see huxley/cmdline.py
 """
 
+from huxley.consts import modes
+from huxley import run
+
+import os
+import jsonpickle
+
+def _write_recorded_run(filename, output):
+    """
+    Serialize a recorded run to a JSON file.
+    """
+    try:
+        with open(os.path.join(filename, 'record.json'), 'w') as fp:
+                fp.write(
+                    jsonpickle.encode(
+                        output
+                    )
+                ) # todo version the recorded run, and validate it
+    except Exception as exc: # todo how can this fail
+        raise exc
+
+
+def dispatch(driver, mode, tests):
+    """
+    Given driver and a list of tests, dispatch the appropriate runs and 
+    return an exit code. For consumption by the CLI and unittest 
+    integration.
+    """
+    funcs = {
+        modes.RECORD: (run.record, lambda x: (x.settings, )),
+        modes.RERECORD: (run.rerecord, lambda x: (x.settings, x.recorded_run)),
+        modes.PLAYBACK: (run.playback, lambda x: (x.settings, x.recorded_run))
+    }
+    run_log = {name: None for name, _ in tests.iteritems()}
+    try:
+        for name, test in tests.iteritems():
+            output = funcs[mode][0](driver, *funcs[mode][1](test))
+            run_log[name] = output
+            if mode in (modes.RECORD, modes.RERECORD):
+                _write_recorded_run(test.settings.path, output)
+    except Exception as exc: # todo how can this fail
+        raise exc
+    return run_log
+
+
 def main(*args, **kwargs):
     """
     Placeholder for unittest, TODO
     """
     raise NotImplementedError
 
-def dispatcher(*args, **kwargs):
-    """
-    Given settings, huxley file?,  a MODE, dispatch the appropriate runs and 
-    return an exit code. For consumption by the CLI and unittest 
-    integration.
-    """
-    pass

@@ -29,11 +29,22 @@ import jsonpickle
 
 from huxley.consts import modes, exits
 from huxley import run
+from huxley.main import dispatch
 from huxley.version import __version__
 
 
+class TestRun(object): # check this name...
+    """
+    Object to be passed into dispatch... containing all information 
+    run a test, minus mode, since it's effectively global.
+    """
 
-class Settings(object): # pylint: disable=R0903
+    def __init__(self, settings, recorded_run=None):
+        self.settings = settings
+        self.recorded_run = recorded_run
+
+
+class Settings(object): # pylint: disable=R0903,R0902
     """
     Hold validated settings for a specific test run.
     """
@@ -42,7 +53,7 @@ class Settings(object): # pylint: disable=R0903
             url, mode, path,
             sleepfactor, screensize, postdata,
             diffcolor, save_diff
-        ):
+        ): # pylint: disable=R0913
         self.url = url
         self.mode = mode
         self.path = path
@@ -76,6 +87,7 @@ CAPABILITIES = {
 }
 
 
+
 DEFAULT_WEBDRIVER = 'http://localhost:4444/wd/hub'
 DEFAULT_SLEEPFACTOR = 1.0
 DEFAULT_SCREENSIZE = '1024x768'
@@ -84,7 +96,11 @@ DEFAULT_DIFFCOLOR = '0,255,0'
 
 LOCAL_WEBDRIVER_URL = os.environ.get('HUXLEY_WEBDRIVER_LOCAL', DEFAULT_WEBDRIVER)
 REMOTE_WEBDRIVER_URL = os.environ.get('HUXLEY_WEBDRIVER_REMOTE', DEFAULT_WEBDRIVER)
-DEFAULTS = json.loads(os.environ.get('HUXLEY_DEFAULTS', 'null'))
+ENV_DEFAULTS = json.loads(os.environ.get('HUXLEY_DEFAULTS', 'null'))
+DEFAULTS = {
+    'screensize': DEFAULT_SCREENSIZE,
+    # etc.
+}
 
 def _postdata(arg):
     """
@@ -170,8 +186,10 @@ def _postdata(arg):
 
     version = plac.Annotation(
         'Get the current version',
-        'flag', 'v'
+        'flag', 'version'
     )
+
+    # todo: verbose?
 )
 
 
@@ -189,7 +207,7 @@ def initialize(
         diffcolor=None,
         save_diff=False,
         version=False
-    ):
+    ): # pylint: disable=R0913
         # autorerecord=False,
         # playback_only=False,
     """
@@ -221,133 +239,105 @@ def initialize(
     else:
         mode = modes.PLAYBACK
 
-    # postdata
-    postdata = _postdata(postdata)
-
-    if local and not remote:
-        driver_url = local
-    else:
-        driver_url = remote or REMOTE_WEBDRIVER_URL
+    # driver
     try:
-        driver = webdriver.Remote(driver_url, CAPABILITIES[(browser or DEFAULT_BROWSER)])
-        screensize = tuple(int(x) for x in (screensize or DEFAULT_SCREENSIZE).split('x'))
-    except KeyError:
-        raise ValueError(
-            'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
-        )
+        if local and not remote:
+            driver_url = local
+        else:
+            driver_url = remote or REMOTE_WEBDRIVER_URL
+        try:
+            driver = webdriver.Remote(driver_url, CAPABILITIES[(browser or DEFAULT_BROWSER)])
+            screensize = tuple(int(x) for x in (screensize or DEFAULT_SCREENSIZE).split('x'))
+        except KeyError:
+            print 'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
+            return exits.ARGUMENT_ERROR
 
-    diffcolor = tuple(int(x) for x in (diffcolor or DEFAULT_DIFFCOLOR).split(','))
+        # others
+        postdata = _postdata(postdata)
+        diffcolor = tuple(int(x) for x in (diffcolor or DEFAULT_DIFFCOLOR).split(','))
 
-    new_screenshots = False
+        new_screenshots = False
 
-    print '-'*70
-    print test_files
+        tests = {}
 
-    for file_name in test_files:
-        msg = 'Running Huxley file: ' + file_name
-        print '-' * len(msg)
-        print msg
-        print '-' * len(msg)
+        for file_name in test_files:
 
-        config = ConfigParser.SafeConfigParser(
-            defaults=DEFAULTS,
-            allow_no_value=True
-        )
-
-        config.read([file_name])
-        for testname in config.sections():
-            print '!', testname
-            if names and (testname not in names):
-                continue
-            print 'Running test:', testname
-            test_config = dict(config.items(testname))
-            print test_config
-            url = config.get(testname, 'url')
-            default_filename = os.path.join(
-                os.path.dirname(file_name),
-                testname + '.huxley'
-            )
-            filename = test_config.get(
-                'filename',
-                default_filename
-            )
-            sleepfactor = sleepfactor or float(test_config.get(
-                'sleepfactor',
-                1.0
-            ))
-            screensize = screensize or test_config.get(
-                'screensize',
-                '1024x768'
+            config = ConfigParser.SafeConfigParser(
+                defaults=DEFAULTS,
+                allow_no_value=True
             )
 
-            settings = Settings(
-                url=url,
-                mode=mode,
-                path=filename,
-                sleepfactor=sleepfactor,
-                screensize=screensize,
-                postdata=postdata or test_config.get('postdata'),
-                diffcolor=diffcolor,
-                save_diff=save_diff
-            )
-            print settings
-            print '-'*70
+            config.read([file_name])
+            for testname in config.sections():
+                print '!', testname
+                if names and (testname not in names):
+                    continue
+                print 'Running test:', testname
+                test_config = dict(config.items(testname))
+                # print test_config
+                url = config.get(testname, 'url')
+                default_filename = os.path.join(
+                    os.path.dirname(file_name),
+                    testname + '.huxley'
+                )
+                filename = test_config.get(
+                    'filename',
+                    default_filename
+                )
+                sleepfactor = sleepfactor or float(test_config.get(
+                    'sleepfactor',
+                    1.0
+                ))
+                screensize = screensize or test_config.get(
+                    'screensize',
+                    '1024x768'
+                )
 
-            # TODO: not do this here; handle non-empty dir, 
-            #       incl. 0-length .json file as failed record
-            try:
-                os.makedirs(filename)
-            except:
-                pass
+                settings = Settings(
+                    url=url,
+                    mode=mode,
+                    path=filename,
+                    sleepfactor=sleepfactor,
+                    screensize=screensize,
+                    postdata=postdata or test_config.get('postdata'),
+                    diffcolor=diffcolor,
+                    save_diff=save_diff
+                )
+                # print settings
+                # print '-'*70
 
-            # TODO: not load json here
-            # TODO: paths that (1) read existing JSON and (2) write new JSON should be separated
-            #       so we handle duplicate tests etc. in CLI setup
-
-            # TODO: use only absolute paths past the initialize function
-
-            if not record:
+                # TODO: not do this here; handle non-empty dir, 
+                #       incl. 0-length .json file as failed record
                 try:
-                    with open(os.path.join(filename, 'record.json'), 'r') as fp:
-                        recorded_run = jsonpickle.decode(fp.read())
-                except ValueError as exc:
-                    raise # todo error
-                except Exception as exc:
-                    raise exc
+                    os.makedirs(filename)
+                except:
+                    pass
 
-            if record:
-                try:
-                    recorded_run = run.record(settings, driver)
-                except Exception as exc: # todo how can this fail
-                    raise exc
-                try:
-                    with open(os.path.join(filename, 'record.json'), 'w') as fp:
-                        fp.write(
-                            jsonpickle.encode(
-                                recorded_run
-                            )
-                        )
-                except Exception as exc: # todo how can this fail
-                    raise exc
-                print 'Test recorded successfully'
-                exits.code = 0
-            else:
-                try:
-                    run.playback(settings, driver, recorded_run)
-                except Exception as exc: # todo how can this fail
-                    raise exc
-                print 'Test played back successfully'
-                exits.code = 0
-            new_screenshots = new_screenshots or (exits.code != 0) # todo remove exits.code
-            print
+                # TODO: not load json here
+                # TODO: paths that (1) read existing JSON and (2) write new JSON should be separated
+                #       so we handle duplicate tests etc. in CLI setup
 
-    driver.close() # todo properly
+                # TODO: use only absolute paths past the initialize function
 
-    if new_screenshots:
-        print '** New screenshots were written; please verify that they are correct. **'
-        return exits.NEW_SCREENSHOTS
-    else:
-        return exits.OK
+                if not record:
+                    try:
+                        with open(os.path.join(filename, 'record.json'), 'r') as fp:
+                            recorded_run = jsonpickle.decode(fp.read())
+                    except ValueError as exc:
+                        raise # todo error
+                    except Exception as exc:
+                        raise exc
+                else:
+                    recorded_run = None
+
+                tests[testname] = TestRun(settings, recorded_run)
+
+            logs = dispatch(driver, mode, tests)
+            print '*'*70
+            print logs
+    finally:
+        driver.close()
+
 
 def main():
     """
