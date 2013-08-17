@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Compare screenshots taken via the webdriver.
+"""
+
 import math
 
 import Image
@@ -45,9 +49,15 @@ def image_diff(path1, path2, outpath, diffcolor):
     pix2 = im2.load()
 
     if im1.mode != im2.mode:
-        raise TestError('Different pixel modes between %r and %r' % (path1, path2))
+        raise TestError(
+            'Different pixel modes between %r and %r' % \
+            (path1, path2)
+        )
     if im1.size != im2.size:
-        raise TestError('Different dimensions between %r (%r) and %r (%r)' % (path1, im1.size, path2, im2.size))
+        raise TestError(
+            'Different dimensions between %r (%r) and %r (%r)' % \
+            (path1, im1.size, path2, im2.size)
+        )
 
     mode = im1.mode
 

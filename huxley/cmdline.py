@@ -25,7 +25,8 @@ import sys
 import plac
 from selenium import webdriver
 
-from huxley.consts import modes, exits
+from huxley.consts import modes, exits, \
+    REMOTE_WEBDRIVER_URL, DEFAULT_WEBDRIVER
 from huxley import util
 from huxley.main import dispatch
 from huxley.version import __version__
@@ -95,15 +96,12 @@ CAPABILITIES = {
 
 
 
-DEFAULT_WEBDRIVER = 'http://localhost:4444/wd/hub'
 DEFAULT_SLEEPFACTOR = 1.0
 DEFAULT_SCREENSIZE = '1024x768'
 DEFAULT_BROWSER = 'firefox'
 DEFAULT_DIFFCOLOR = '0,255,0'
 
-LOCAL_WEBDRIVER_URL = os.environ.get('HUXLEY_WEBDRIVER_LOCAL', DEFAULT_WEBDRIVER)
-REMOTE_WEBDRIVER_URL = os.environ.get('HUXLEY_WEBDRIVER_REMOTE', DEFAULT_WEBDRIVER)
-ENV_DEFAULTS = json.loads(os.environ.get('HUXLEY_DEFAULTS', 'null'))
+
 DEFAULTS = {
     'screensize': DEFAULT_SCREENSIZE,
     # etc.
@@ -300,7 +298,6 @@ def initialize(
                 if not os.path.isabs(filename):
                     filename = os.path.join(cwd, filename)
 
-
                 if os.path.exists(filename):
                     if mode == modes.RECORD: # todo weirdness with rerecord
                         if os.path.getsize(filename) > 0:
@@ -310,7 +307,7 @@ def initialize(
                                     % testname, 
                                 ('Y', 'y')
                                 ):
-                                return exits.ERROR # todo
+                                return exits.ERROR
                             for each in os.listdir(filename):
                                 if each.split('.')[-1] in ('png', 'json'):
                                     os.remove(os.path.join(filename, each))
@@ -323,7 +320,7 @@ def initialize(
                             raise
                     else:
                         print '%s does not exist' % filename
-                        return exits.ERROR # todo
+                        return exits.ERROR
 
                 # load recorded runs if appropriate
                 if mode != modes.RECORD:
@@ -367,7 +364,7 @@ def initialize(
         # run the tests
         try:
             logs = dispatch(driver, mode, tests)
-        except Exception as exc:
+        except Exception as exc: # pylint: disable=W0703
             print str(exc)
             return exits.ERROR
         return exits.OK

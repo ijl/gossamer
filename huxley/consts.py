@@ -16,10 +16,17 @@
 Application constants including run modes and exit codes.
 """
 
-__all__ = ['exits', 'modes', ]
+import os
+import json
 
 
-class TestRunModes(object): # pylint: disable=R0903
+DEFAULT_WEBDRIVER = 'http://localhost:4444/wd/hub'
+
+LOCAL_WEBDRIVER_URL = os.environ.get('HUXLEY_WEBDRIVER_LOCAL', DEFAULT_WEBDRIVER)
+REMOTE_WEBDRIVER_URL = os.environ.get('HUXLEY_WEBDRIVER_REMOTE', DEFAULT_WEBDRIVER)
+ENV_DEFAULTS = json.loads(os.environ.get('HUXLEY_DEFAULTS', 'null'))
+
+class _TestRunModes(object): # pylint: disable=R0903
     """
     Indicates what a given test run should be doing, e.g., recording.
     """
@@ -27,9 +34,9 @@ class TestRunModes(object): # pylint: disable=R0903
     RERECORD = 2
     PLAYBACK = 3
 
-modes = TestRunModes()
+modes = _TestRunModes()
 
-class ExitCodes(object): # pylint: disable=R0903
+class _ExitCodes(object): # pylint: disable=R0903
     """
     Exit codes... 1 doesn't make sense to me as it's a desired exit, todo...
     """
@@ -39,4 +46,4 @@ class ExitCodes(object): # pylint: disable=R0903
     ARGUMENT_ERROR = 3 # CLI interface
     RECORDED_RUN_ERROR = 4 # Something went wrong with loading recorded records
 
-exits = ExitCodes()
+exits = _ExitCodes()

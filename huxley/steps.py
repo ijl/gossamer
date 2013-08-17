@@ -24,6 +24,10 @@ from huxley.errors import TestError
 from huxley.images import images_identical, image_diff
 
 class TestStep(object):
+    """
+    Base class of test actions, not useful in itself.
+    """
+
     def __init__(self, offset_time):
         self.offset_time = offset_time
 
@@ -32,6 +36,10 @@ class TestStep(object):
 
 
 class ClickTestStep(TestStep):
+    """
+    Click action by the user.
+    """
+
     CLICK_ID = '_huxleyClick'
 
     def __init__(self, offset_time, pos):
@@ -47,6 +55,10 @@ class ClickTestStep(TestStep):
 
 
 class KeyTestStep(TestStep):
+    """
+    Typing action by the user.
+    """
+
     KEY_ID = '_huxleyKey'
 
     def __init__(self, offset_time, key):
@@ -65,6 +77,10 @@ class KeyTestStep(TestStep):
 
 
 class ScreenshotTestStep(TestStep):
+    """
+    Screenshot taken by the user.
+    """
+    
     def __init__(self, offset_time, index):
         super(ScreenshotTestStep, self).__init__(offset_time)
         self.index = index
