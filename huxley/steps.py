@@ -37,7 +37,7 @@ class ClickTestStep(TestStep):
         print '  Clicking', self.pos
         # Work around multiple bugs in WebDriver's implementation of click()
         run.driver.execute_script(
-            'document.elementFromPoint(%d, %d).click();' % (self.pos[0], self.pos[1])
+            'document.elementFromPoint(%d, %d).click();' % (self.pos.x, self.pos.y)
         )
 
 

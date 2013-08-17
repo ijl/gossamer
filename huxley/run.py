@@ -21,6 +21,20 @@ from huxley.consts import TestRunModes
 from huxley.errors import TestError
 from huxley.steps import ScreenshotTestStep, ClickTestStep, KeyTestStep
 
+class Point(object):
+
+    def __init__(self, x, y):
+        if x < 0 or y < 0:
+            raise ValueError(
+                'Coordinates [%s, %s] cannot be negative' % (x, y)
+            )
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return ''.join(('[', str(self.x), ', ', str(self.y), ']'))
+
+
 def get_post_js(url, postdata):
     markup = '<form method="post" action="%s">' % url
     for k in postdata.keys():
@@ -134,22 +148,19 @@ window._getHuxleyEvents = function() { return events; };
             )
         for (timestamp, type, params) in events:
             if type == 'click':
-                steps.append(ClickTestStep(timestamp - start_time, params))
+                steps.append(ClickTestStep(timestamp - start_time, Point(*params)))
             elif type == 'keyup':
                 steps.append(KeyTestStep(timestamp - start_time, params))
 
-        steps.sort(key=operator.attrgetter('offset_time'))
+        test.steps = sorted(steps, key=operator.attrgetter('offset_time'))
 
-        test.steps = steps
-
-        print
-        raw_input(
-            'Up next, we\'ll re-run your actions to generate screenshots ' +
-            'to ensure they are pixel-perfect when running automatedriver. ' +
-            'Press enter to start.'
+        print raw_input(
+            "\n"
+            "Up next, we'll re-run your actions to generate screenshots "
+            "to ensure they are pixel-perfect when running automatedriver." 
+            "Press enter to start."
         )
-        print
-        cls.rerecord(test, path, url, remote_driver, sleepfactor, diffcolor, save_diff)
+        print cls.rerecord(test, path, url, remote_driver, sleepfactor, diffcolor, save_diff)
 
         return test
 
