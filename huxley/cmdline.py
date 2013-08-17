@@ -102,6 +102,19 @@ DEFAULTS = {
     # etc.
 }
 
+def _recorded_run(filename):
+    """
+    Load a serialized run. TODO in versioning, validation, etc.
+    """
+    try:
+        with open(os.path.join(filename, 'record.json'), 'r') as fp:
+            recorded_run = jsonpickle.decode(fp.read())
+        return recorded_run
+    except ValueError as exc:
+        raise # todo error
+    except Exception as exc:
+        raise exc
+
 def _postdata(arg):
     """
     Given CLI input `arg`, resolve postdata.
@@ -269,7 +282,6 @@ def initialize(
 
             config.read([file_name])
             for testname in config.sections():
-                print '!', testname
                 if names and (testname not in names):
                     continue
                 print 'Running test:', testname
@@ -319,25 +331,16 @@ def initialize(
 
                 # TODO: use only absolute paths past the initialize function
 
-                if not record:
-                    try:
-                        with open(os.path.join(filename, 'record.json'), 'r') as fp:
-                            recorded_run = jsonpickle.decode(fp.read())
-                    except ValueError as exc:
-                        raise # todo error
-                    except Exception as exc:
-                        raise exc
-                else:
-                    recorded_run = None
+                tests[testname] = TestRun(
+                    settings, 
+                    _recorded_run(filename) if mode != modes.RECORD else None
+                )
 
-                tests[testname] = TestRun(settings, recorded_run)
-
-            logs = dispatch(driver, mode, tests)
-            print '*'*70
-            print logs
+        # run the tests
+        logs = dispatch(driver, mode, tests)
+        return 0 # todo
     finally:
         driver.close()
-
 
 def main():
     """
