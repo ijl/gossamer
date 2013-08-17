@@ -16,9 +16,7 @@
 Command-line interface to the app.
 """
 
-import ConfigParser
 import glob
-import json
 import os
 import sys
 
@@ -26,11 +24,11 @@ import plac
 from selenium import webdriver
 
 from huxley.consts import modes, exits, \
-    REMOTE_WEBDRIVER_URL, DEFAULT_WEBDRIVER
+    REMOTE_WEBDRIVER_URL, DEFAULT_WEBDRIVER, DEFAULT_TESTFILE, \
+    DEFAULT_DIFFCOLOR, DEFAULT_SCREENSIZE
 from huxley import util
 from huxley.main import dispatch
 from huxley.version import __version__
-from huxley import errors
 
 
 class TestRun(object): # check this name...
@@ -97,28 +95,8 @@ CAPABILITIES = {
 
 
 DEFAULT_SLEEPFACTOR = 1.0
-DEFAULT_SCREENSIZE = '1024x768'
 DEFAULT_BROWSER = 'firefox'
-DEFAULT_DIFFCOLOR = '0,255,0'
 
-
-DEFAULTS = {
-    'screensize': DEFAULT_SCREENSIZE,
-    # etc.
-}
-
-def _postdata(arg):
-    """
-    Given CLI input `arg`, resolve postdata.
-    """
-    if arg:
-        if arg == '-':
-            return sys.stdin.read()
-        else:
-            with open(arg, 'r') as f:
-                data = json.loads(f.read())
-            return data
-    return None
 
 @plac.annotations(
     names = plac.Annotation(
@@ -197,10 +175,9 @@ def _postdata(arg):
     # todo: verbose?
 )
 
-
 def initialize(
         names=None,
-        testfile='Huxleyfile',
+        testfile=None,
         record=False,
         rerecord=False,
         local=None,
@@ -212,26 +189,25 @@ def initialize(
         diffcolor=None,
         save_diff=False,
         version=False
-    ): # pylint: disable=R0913
+    ): # pylint: disable=R0913,W0613
         # autorerecord=False,
         # playback_only=False,
     """
-    Given arguments from the `plac` argument parser, this must:
-        1. construct a settings object
-        2. create new directories, or handle overwriting existing data
-        3. hand off settings to the dispatcher
+    Given arguments from the `plac` argument parser, determine the mode and 
+    test files so tests can be constructed, then pass tests to the 
+    dispatcher.
     """
 
     if version:
         print 'Huxley ' + __version__
         return exits.OK
 
-    cwd = os.getcwd()
 
     names = names.split(',') if names else None
 
+    cwd = os.getcwd()
     test_files = []
-    for pattern in testfile.split(','):
+    for pattern in (testfile or DEFAULT_TESTFILE).split(','):
         for name in glob.glob(pattern):
             test_files.append(os.path.join(cwd, name))
     if len(test_files) == 0:
@@ -249,6 +225,15 @@ def initialize(
     else:
         mode = modes.PLAYBACK
 
+    attrs = (
+        'names', 'local', 'remote', 'postdata', 'sleepfactor', 
+        'browser', 'screensize', 'diffcolor', 'save_diff'
+    )
+    options = {key: val for key, val in [(each, locals()[each]) for each in attrs]}
+        
+    # make tests using the test_files and mode we've resolved to
+    tests = util.make_tests(test_files, mode, cwd, **options)
+
     # driver
     try:
         if local and not remote:
@@ -257,114 +242,15 @@ def initialize(
             driver_url = remote or REMOTE_WEBDRIVER_URL
         try:
             driver = webdriver.Remote(driver_url, CAPABILITIES[(browser or DEFAULT_BROWSER)])
-            screensize = tuple(int(x) for x in (screensize or DEFAULT_SCREENSIZE).split('x'))
         except KeyError:
             print 'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
             return exits.ARGUMENT_ERROR
-
-        # others
-        postdata = _postdata(postdata)
-        diffcolor = tuple(int(x) for x in (diffcolor or DEFAULT_DIFFCOLOR).split(','))
-
-        tests = {}
-
-        for file_name in test_files:
-
-            config = ConfigParser.SafeConfigParser(
-                defaults=DEFAULTS,
-                allow_no_value=True
-            )
-            config.read([file_name])
-
-            for testname in config.sections():
-
-                if names and (testname not in names):
-                    continue
-                if testname in tests:
-                    print 'Duplicate test name %s' % testname
-                    return exits.ERROR
-
-                test_config = dict(config.items(testname))
-                url = config.get(testname, 'url')
-
-                default_filename = os.path.join(
-                    os.path.dirname(file_name),
-                    testname + '.huxley'
-                )
-                filename = test_config.get(
-                    'filename',
-                    default_filename
-                )
-                if not os.path.isabs(filename):
-                    filename = os.path.join(cwd, filename)
-
-                if os.path.exists(filename):
-                    if mode == modes.RECORD: # todo weirdness with rerecord
-                        if os.path.getsize(filename) > 0:
-                            if not util.prompt(
-                                '%s already exists--clear existing '
-                                'screenshots and overwrite test? [Y/n] ' \
-                                    % testname, 
-                                ('Y', 'y')
-                                ):
-                                return exits.ERROR
-                            for each in os.listdir(filename):
-                                if each.split('.')[-1] in ('png', 'json'):
-                                    os.remove(os.path.join(filename, each))
-                else:
-                    if mode == modes.RECORD:
-                        try:
-                            os.makedirs(filename)
-                        except Exception as exc:
-                            print str(exc)
-                            raise
-                    else:
-                        print '%s does not exist' % filename
-                        return exits.ERROR
-
-                # load recorded runs if appropriate
-                if mode != modes.RECORD:
-                    try:
-                        recorded_run = util.read_recorded_run(filename)
-                    except errors.RecorcedRunEmpty:
-                        print 'Recorded run for %s is empty--please rerecord' % \
-                            (testname, )
-                        return exits.RECORDED_RUN_ERROR
-                    except errors.RecordedRunDoesNotExist:
-                        print 'Recorded run for %s does not exist' % \
-                            (testname, )
-                        return exits.RECORDED_RUN_ERROR
-                else:
-                    recorded_run = None
-
-                sleepfactor = sleepfactor or float(test_config.get(
-                    'sleepfactor',
-                    1.0
-                ))
-                screensize = screensize or test_config.get(
-                    'screensize',
-                    '1024x768'
-                )
-
-                settings = Settings(
-                    name=testname,
-                    url=url,
-                    mode=mode,
-                    path=filename,
-                    sleepfactor=sleepfactor,
-                    screensize=screensize,
-                    postdata=postdata or test_config.get('postdata'),
-                    diffcolor=diffcolor,
-                    save_diff=save_diff
-                )
-
-                tests[testname] = TestRun(settings, recorded_run)
-                # print tests[testname]
 
         # run the tests
         try:
             logs = dispatch(driver, mode, tests)
         except Exception as exc: # pylint: disable=W0703
+            raise
             print str(exc)
             return exits.ERROR
         return exits.OK
