@@ -338,9 +338,9 @@ def initialize(
 
         # run the tests
         logs = dispatch(driver, mode, tests)
-        return 0 # todo
+        return exits.OK # todo
     finally:
-        driver.close()
+        driver.quit()
 
 def main():
     """
