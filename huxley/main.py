@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib
 import os
 import json
 import sys
@@ -20,6 +19,7 @@ import sys
 import jsonpickle
 import plac
 from selenium import webdriver
+from contextlib import closing
 
 from huxley.run import TestRun
 from huxley.errors import TestError
@@ -79,9 +79,9 @@ def main(
                 postdata = json.loads(f.read())
     try:
         if remote:
-            d = webdriver.Remote(remote, CAPABILITIES[browser])
+            driver = webdriver.Remote(remote, CAPABILITIES[browser])
         else:
-            d = DRIVERS[browser]()
+            driver = DRIVERS[browser]()
         screensize = tuple(int(x) for x in screensize.split('x'))
     except KeyError:
         raise ValueError(
@@ -96,24 +96,24 @@ def main(
     diffcolor = tuple(int(x) for x in diffcolor.split(','))
     jsonfile = os.path.join(filename, 'record.json')
 
-    with contextlib.closing(d):
+    with closing(driver) as driver:
         if record:
             if local:
-                local_d = webdriver.Remote(local, CAPABILITIES[browser])
+                local_driver = webdriver.Remote(local, CAPABILITIES[browser])
             else:
-                local_d = d
-            with contextlib.closing(local_d):
+                local_driver = driver
+            with closing(local_driver):
                 with open(jsonfile, 'w') as f:
                     f.write(
                         jsonpickle.encode(
-                            TestRun.record(local_d, d, (url, postdata), screensize, filename, diffcolor, sleepfactor, save_diff)
+                            TestRun.record(local_driver, driver, (url, postdata), screensize, filename, diffcolor, sleepfactor, save_diff)
                         )
                     )
             print 'Test recorded successfully'
             return 0
         elif rerecord:
             with open(jsonfile, 'r') as f:
-                TestRun.rerecord(jsonpickle.decode(f.read()), filename, (url, postdata), d, sleepfactor, diffcolor, save_diff)
+                TestRun.rerecord(jsonpickle.decode(f.read()), filename, (url, postdata), driver, sleepfactor, diffcolor, save_diff)
                 print 'Test rerecorded successfully'
                 return 0
         elif autorerecord:
@@ -121,17 +121,17 @@ def main(
                 test = jsonpickle.decode(f.read())
             try:
                 print 'Running test to determine if we need to rerecord'
-                TestRun.playback(test, filename, (url, postdata), d, sleepfactor, diffcolor, save_diff)
+                TestRun.playback(test, filename, (url, postdata), driver, sleepfactor, diffcolor, save_diff)
                 print 'Test played back successfully'
                 return 0
             except TestError:
                 print 'Test failed, rerecording...'
-                TestRun.rerecord(test, filename, (url, postdata), d, sleepfactor, diffcolor, save_diff)
+                TestRun.rerecord(test, filename, (url, postdata), driver, sleepfactor, diffcolor, save_diff)
                 print 'Test rerecorded successfully'
                 return 2
         else:
             with open(jsonfile, 'r') as f:
-                TestRun.playback(jsonpickle.decode(f.read()), filename, (url, postdata), d, sleepfactor, diffcolor, save_diff)
+                TestRun.playback(jsonpickle.decode(f.read()), filename, (url, postdata), driver, sleepfactor, diffcolor, save_diff)
                 print 'Test played back successfully'
                 return 0
 

@@ -36,7 +36,7 @@ class ClickTestStep(TestStep):
     def execute(self, run):
         print '  Clicking', self.pos
         # Work around multiple bugs in WebDriver's implementation of click()
-        run.d.execute_script(
+        run.driver.execute_script(
             'document.elementFromPoint(%d, %d).click();' % (self.pos[0], self.pos[1])
         )
 
@@ -50,13 +50,13 @@ class KeyTestStep(TestStep):
 
     def execute(self, run):
         print '  Typing', self.key
-        id = run.d.execute_script('return document.activeElement.id;')
+        id = run.driver.execute_script('return document.activeElement.id;')
         if id is None or id == '':
-            run.d.execute_script(
+            run.driver.execute_script(
                 'document.activeElement.id = %r;' % self.KEY_ID
             )
             id = self.KEY_ID
-        run.d.find_element_by_id(id).send_keys(self.key.lower())
+        run.driver.find_element_by_id(id).send_keys(self.key.lower())
 
 
 class ScreenshotTestStep(TestStep):
@@ -72,9 +72,9 @@ class ScreenshotTestStep(TestStep):
         original = self.get_path(run)
         new = os.path.join(run.path, 'last.png')
         if run.mode == TestRunModes.RERECORD:
-            run.d.save_screenshot(original)
+            run.driver.save_screenshot(original)
         else:
-            run.d.save_screenshot(new)
+            run.driver.save_screenshot(new)
             try:
                 if not images_identical(original, new):
                     if run.save_diff:
