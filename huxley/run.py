@@ -84,6 +84,7 @@ class TestRun(object):
 
     @classmethod
     def rerecord(cls, test, path, url, driver, sleepfactor, diffcolor, save_diff):
+        # did I break something by removing the driver=remote_driver pass from #record?
         print 'Begin rerecord'
         run = TestRun(test, path, url, driver, TestRunModes.RERECORD, diffcolor, save_diff)
         run._playback(sleepfactor)
@@ -110,7 +111,7 @@ class TestRun(object):
             last_offset_time = step.offset_time
 
     @classmethod
-    def record(cls, driver, remote_driver, url, screen_size, path, diffcolor, sleepfactor, save_diff):
+    def record(cls, driver, url, screen_size, path, diffcolor, sleepfactor, save_diff):
         print 'Begin record'
         try:
             os.makedirs(path)
@@ -131,9 +132,13 @@ window._getHuxleyEvents = function() { return events; };
 ''')
         steps = []
         while True:
-            if len(raw_input("Press enter to take a screenshot, or type Q+enter if you're done\n")) > 0:
+            if raw_input("Press enter to take a screenshot, or type Q+enter if you're done\n") in ('Q', 'q'):
                 break
-            screenshot_step = ScreenshotTestStep(driver.execute_script('return Date.now();') - start_time, run, len(steps))
+            screenshot_step = ScreenshotTestStep(
+                driver.execute_script('return Date.now();') - start_time, 
+                run, 
+                len(steps)
+            )
             run.driver.save_screenshot(screenshot_step.get_path(run))
             steps.append(screenshot_step)
             print len(steps), 'screenshots taken'
@@ -143,14 +148,17 @@ window._getHuxleyEvents = function() { return events; };
             events = driver.execute_script('return window._getHuxleyEvents();')
         except:
             raise TestError(
-                'Could not call window._getHuxleyEvents(). ' +
-                'This usually means you navigated to a new page, which is currently unsupportedriver.'
+                'Could not call window._getHuxleyEvents(). '
+                'This usually means you navigated to a new page, which is currently unsupported.'
             )
         for (timestamp, type, params) in events:
             if type == 'click':
                 steps.append(ClickTestStep(timestamp - start_time, Point(*params)))
             elif type == 'keyup':
                 steps.append(KeyTestStep(timestamp - start_time, params))
+
+        if len(steps) == 0:
+            raise Exception('TODO something about this')
 
         test.steps = sorted(steps, key=operator.attrgetter('offset_time'))
 
@@ -160,7 +168,7 @@ window._getHuxleyEvents = function() { return events; };
             "to ensure they are pixel-perfect when running automatedriver." 
             "Press enter to start."
         )
-        print cls.rerecord(test, path, url, remote_driver, sleepfactor, diffcolor, save_diff)
+        print cls.rerecord(test, path, url, driver, sleepfactor, diffcolor, save_diff)
 
         return test
 
