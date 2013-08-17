@@ -14,7 +14,7 @@
 
 import os
 
-from huxley.consts import TestRunModes
+from huxley.consts import modes
 from huxley.errors import TestError
 from huxley.images import images_identical, image_diff
 
@@ -60,7 +60,7 @@ class KeyTestStep(TestStep):
 
 
 class ScreenshotTestStep(TestStep):
-    def __init__(self, offset_time, run, index):
+    def __init__(self, offset_time, index):
         super(ScreenshotTestStep, self).__init__(offset_time)
         self.index = index
 
@@ -71,7 +71,7 @@ class ScreenshotTestStep(TestStep):
         print '  Taking screenshot', self.index
         original = self.get_path(settings)
         new = os.path.join(settings.path, 'last.png')
-        if settings.mode == TestRunModes.RERECORD:
+        if settings.mode == modes.RERECORD:
             driver.save_screenshot(original)
         else:
             driver.save_screenshot(new)

@@ -27,18 +27,13 @@ from selenium import webdriver
 
 import jsonpickle
 
-from huxley.consts import TestRunModes
+from huxley.consts import modes, exits
 from huxley import run
 from huxley.version import __version__
 
 
-class ExitCodes(object):
-    OK = 0
-    NEW_SCREENSHOTS = 1
-    ERROR = 2
 
-
-class Settings(object):
+class Settings(object): # pylint: disable=R0903
     """
     Hold validated settings for a specific test run.
     """
@@ -63,6 +58,8 @@ class Settings(object):
         """
         return (self.url, self.postdata)
 
+    def __repr__(self):
+        return '%s %r' % (self.__class__.__name__, self.__dict__)
 
 DRIVERS = {
     'firefox': webdriver.Firefox,
@@ -89,6 +86,18 @@ LOCAL_WEBDRIVER_URL = os.environ.get('HUXLEY_WEBDRIVER_LOCAL', DEFAULT_WEBDRIVER
 REMOTE_WEBDRIVER_URL = os.environ.get('HUXLEY_WEBDRIVER_REMOTE', DEFAULT_WEBDRIVER)
 DEFAULTS = json.loads(os.environ.get('HUXLEY_DEFAULTS', 'null'))
 
+def _postdata(arg):
+    """
+    Given CLI input `arg`, resolve postdata.
+    """
+    if arg:
+        if arg == '-':
+            return sys.stdin.read()
+        else:
+            with open(arg, 'r') as f:
+                data = json.loads(f.read())
+            return data
+    return None
 
 @plac.annotations(
     names = plac.Annotation(
@@ -111,10 +120,10 @@ DEFAULTS = json.loads(os.environ.get('HUXLEY_DEFAULTS', 'null'))
         'Re-run the test but take new screenshots',
         'flag', 'rr' 
     ),
-    playback_only = plac.Annotation(
-        'Don\'t write new screenshots',
-        'flag', 'p'
-    ),
+    # playback_only = plac.Annotation(
+    #     'Don\'t write new screenshots',
+    #     'flag', 'p'
+    # ),
 
     local = plac.Annotation(
         'Local WebDriver URL to use',
@@ -154,22 +163,23 @@ DEFAULTS = json.loads(os.environ.get('HUXLEY_DEFAULTS', 'null'))
         'flag', 'e'
     ),
 
-    autorerecord = plac.Annotation(
-        'Playback test and automatically rerecord if it fails',
-        'flag', 'a' # todo
-    ),
+    # autorerecord = plac.Annotation(
+    #     'Playback test and automatically rerecord if it fails',
+    #     'flag', 'a' # todo
+    # ),
 
     version = plac.Annotation(
         'Get the current version',
         'flag', 'v'
     )
 )
-def _main(
+
+
+def initialize(
         names=None,
         testfile='Huxleyfile',
         record=False,
         rerecord=False,
-        playback_only=False,
         local=None,
         remote=None,
         postdata=None,
@@ -178,30 +188,41 @@ def _main(
         screensize=None,
         diffcolor=None,
         save_diff=False,
-        autorerecord=False,
         version=False
     ):
+        # autorerecord=False,
+        # playback_only=False,
+    """
+    Given arguments from the `plac` argument parser, this must:
+        1. construct a settings object
+        2. create new directories, or handle overwriting existing data
+        3. hand off settings to the dispatcher
+    """
 
     if version:
         print 'Huxley ' + __version__
-        return ExitCodes.OK
+        return exits.OK
 
-    test_files = glob.glob(testfile)
+    test_files = []
+    for name in testfile.split(','):
+        test_files.extend(glob.glob(name))
     if len(test_files) == 0:
-        print 'no Huxleyfile found'
-        return ExitCodes.ERROR
+        print 'No Huxleyfile found'
+        return exits.ERROR
 
-    if record and rerecord: # todo
-        raise Exception("Can't have both, TODO")
+    # mode
+    if record and rerecord:
+        print 'Cannot specify both -r and -rr'
+        return exits.ARGUMENT_ERROR
+    if record:
+        mode = modes.RECORD
+    elif rerecord:
+        mode = modes.RERECORD
+    else:
+        mode = modes.PLAYBACK
 
-    # TODO use `mode` attr
-
-    if postdata:
-        if postdata == '-':
-            postdata = sys.stdin.read()
-        else:
-            with open(postdata, 'r') as f:
-                postdata = json.loads(f.read())
+    # postdata
+    postdata = _postdata(postdata)
 
     if local and not remote:
         driver_url = local
@@ -219,6 +240,9 @@ def _main(
 
     new_screenshots = False
 
+    print '-'*70
+    print test_files
+
     for file_name in test_files:
         msg = 'Running Huxley file: ' + file_name
         print '-' * len(msg)
@@ -232,10 +256,12 @@ def _main(
 
         config.read([file_name])
         for testname in config.sections():
+            print '!', testname
             if names and (testname not in names):
                 continue
             print 'Running test:', testname
             test_config = dict(config.items(testname))
+            print test_config
             url = config.get(testname, 'url')
             default_filename = os.path.join(
                 os.path.dirname(file_name),
@@ -249,14 +275,10 @@ def _main(
                 'sleepfactor',
                 1.0
             ))
-            postdata = postdata or test_config.get(
-                'postdata'
-            )
             screensize = screensize or test_config.get(
                 'screensize',
                 '1024x768'
             )
-            mode = TestRunModes.PLAYBACK
 
             settings = Settings(
                 url=url,
@@ -264,10 +286,12 @@ def _main(
                 path=filename,
                 sleepfactor=sleepfactor,
                 screensize=screensize,
-                postdata=postdata,
+                postdata=postdata or test_config.get('postdata'),
                 diffcolor=diffcolor,
                 save_diff=save_diff
             )
+            print settings
+            print '-'*70
 
             # TODO: not do this here; handle non-empty dir, 
             #       incl. 0-length .json file as failed record
@@ -279,6 +303,8 @@ def _main(
             # TODO: not load json here
             # TODO: paths that (1) read existing JSON and (2) write new JSON should be separated
             #       so we handle duplicate tests etc. in CLI setup
+
+            # TODO: use only absolute paths past the initialize function
 
             if not record:
                 try:
@@ -304,24 +330,30 @@ def _main(
                 except Exception as exc: # todo how can this fail
                     raise exc
                 print 'Test recorded successfully'
-                exit_code = 0
+                exits.code = 0
             else:
                 try:
                     run.playback(settings, driver, recorded_run)
                 except Exception as exc: # todo how can this fail
                     raise exc
                 print 'Test played back successfully'
-                exit_code = 0
-            new_screenshots = new_screenshots or (exit_code != 0) # todo remove exit_code
+                exits.code = 0
+            new_screenshots = new_screenshots or (exits.code != 0) # todo remove exits.code
             print
+
+    driver.close() # todo properly
 
     if new_screenshots:
         print '** New screenshots were written; please verify that they are correct. **'
-        return ExitCodes.NEW_SCREENSHOTS
+        return exits.NEW_SCREENSHOTS
     else:
-        return ExitCodes.OK
+        return exits.OK
 
 def main():
-    sys.exit(plac.call(_main))
+    """
+    Defined as the `huxley` command in setup.py.
 
-# TODO close selenium window
+    Runs the argument parser and passes settings to 
+    :func:`huxley.main.dispatcher`.
+    """
+    sys.exit(plac.call(initialize))

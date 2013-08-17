@@ -12,7 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class TestRunModes(object):
+"""
+Application constants including run modes and exit codes.
+"""
+
+__all__ = ['exits', 'modes', ]
+
+
+class TestRunModes(object): # pylint: disable=R0903
+    """
+    Indicates what a given test run should be doing, e.g., recording.
+    """
     RECORD = 1
     RERECORD = 2
     PLAYBACK = 3
+
+modes = TestRunModes()
+
+class ExitCodes(object): # pylint: disable=R0903
+    """
+    Exit codes... 1 doesn't make sense to me as it's a desired exit, todo...
+    """
+    OK = 0
+    NEW_SCREENSHOTS = 1
+    ERROR = 2
+    ARGUMENT_ERROR = 3 # CLI interface
+
+exits = ExitCodes()

@@ -21,8 +21,8 @@ import operator
 import os
 import time
 
-from huxley.consts import TestRunModes
-from huxley.errors import TestError
+# from huxley.consts import modes
+from huxley.errors import TestError, NoStepsRecorded
 from huxley.steps import ScreenshotTestStep, ClickTestStep, KeyTestStep
 
 __all__ = ['playback', 'record', 'rerecord', ]
@@ -107,7 +107,7 @@ class TestRun(object):
     """
     Specific instance of a test run. Not sure of use now?
     """
-    
+
     def __init__(self, test, path, url, driver, mode, diffcolor, save_diff):
         if not isinstance(test, Test):
             raise ValueError('You must provide a Test instance')
@@ -141,15 +141,15 @@ def record(settings, driver):
     except:
         pass
     record = Test(settings.screensize)
-    run = TestRun(
-        record,
-        settings.path,
-        settings.url,
-        driver,
-        TestRunModes.RECORD,
-        settings.diffcolor,
-        settings.save_diff
-    )
+    # run = TestRun(
+    #     record,
+    #     settings.path,
+    #     settings.url,
+    #     driver,
+    #     modes.RECORD,
+    #     settings.diffcolor,
+    #     settings.save_diff
+    # )
     driver.set_window_size(*settings.screensize)
     navigate(driver, settings.navigate()) # was just url, not (url, postdata)?
     start_time = driver.execute_script('return Date.now();')
@@ -168,10 +168,9 @@ window._getHuxleyEvents = function() { return events; };
             break
         screenshot_step = ScreenshotTestStep(
             driver.execute_script('return Date.now();') - start_time, 
-            run, 
             len(steps)
         )
-        run.driver.save_screenshot(screenshot_step.get_path(run))
+        driver.save_screenshot(screenshot_step.get_path(settings))
         steps.append(screenshot_step)
         print len(steps), 'screenshots taken'
 
@@ -184,14 +183,14 @@ window._getHuxleyEvents = function() { return events; };
             'This usually means you navigated to a new page, '
             'which is currently unsupported.'
         )
-    for (timestamp, type, params) in events:
-        if type == 'click':
+    for (timestamp, action, params) in events:
+        if action == 'click':
             steps.append(ClickTestStep(timestamp - start_time, Point(*params)))
-        elif type == 'keyup':
+        elif action == 'keyup':
             steps.append(KeyTestStep(timestamp - start_time, params))
 
     if len(steps) == 0:
-        raise Exception('TODO something about this')
+        raise NoStepsRecorded('TODO something about this')
 
     record.steps = sorted(steps, key=operator.attrgetter('offset_time'))
 
