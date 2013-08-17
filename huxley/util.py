@@ -21,11 +21,28 @@ import sys
 import json
 import jsonpickle
 import ConfigParser
+
+from selenium import webdriver
+
 from huxley import errors
 
 from huxley.consts import modes, exits, \
-    DEFAULT_DIFFCOLOR, DEFAULTS
+    DEFAULT_DIFFCOLOR, DEFAULTS, REMOTE_WEBDRIVER_URL
 
+
+DRIVERS = {
+    'firefox': webdriver.Firefox,
+    'chrome': webdriver.Chrome,
+    'ie': webdriver.Ie,
+    'opera': webdriver.Opera
+}
+
+CAPABILITIES = {
+    'firefox': webdriver.DesiredCapabilities.FIREFOX,
+    'chrome': webdriver.DesiredCapabilities.CHROME,
+    'ie': webdriver.DesiredCapabilities.INTERNETEXPLORER,
+    'opera': webdriver.DesiredCapabilities.OPERA
+}
 
 def read_recorded_run(filename):
     """
@@ -63,6 +80,26 @@ def write_recorded_run(filename, output):
     return True
 
 
+
+def get_driver(browser, local_webdriver=None, remote_webdriver=None):
+    """
+    Get a webdriver. The caller is responsible for closing the driver.
+
+    Browser is required. Local and remote are optional, with remote 
+    taking precedence.
+    """
+    if local_webdriver and not remote_webdriver:
+        driver_url = local_webdriver
+    else:
+        driver_url = remote_webdriver or REMOTE_WEBDRIVER_URL
+    try:
+        driver = webdriver.Remote(driver_url, CAPABILITIES[browser])
+    except KeyError:
+        print 'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
+        return exits.ARGUMENT_ERROR
+    return driver
+
+
 def prompt(display, options=None):
     """
     Given text as `display` and optionally `options` as an 
@@ -89,6 +126,7 @@ def _postdata(arg):
                 data = json.loads(f.read())
             return data
     return None
+
 
 def make_tests(test_files, mode, cwd, **kwargs):
     """

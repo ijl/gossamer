@@ -21,17 +21,17 @@ import os
 import sys
 
 import plac
-from selenium import webdriver
 
 from huxley.consts import modes, exits, \
-    REMOTE_WEBDRIVER_URL, DEFAULT_WEBDRIVER, DEFAULT_TESTFILE, \
+    DEFAULT_WEBDRIVER, DEFAULT_TESTFILE, \
     DEFAULT_DIFFCOLOR, DEFAULT_SCREENSIZE
 from huxley import util
 from huxley.main import dispatch
 from huxley.version import __version__
 
 
-class TestRun(object): # check this name...
+class TestRun(object):  # pylint: disable=R0903 
+    # check this name...
     """
     Object to be passed into dispatch... containing all information 
     run a test, minus mode, since it's effectively global.
@@ -77,21 +77,6 @@ class Settings(object): # pylint: disable=R0903,R0902
 
     def __repr__(self):
         return '%s: %r' % (self.__class__.__name__, self.__dict__)
-
-DRIVERS = {
-    'firefox': webdriver.Firefox,
-    'chrome': webdriver.Chrome,
-    'ie': webdriver.Ie,
-    'opera': webdriver.Opera
-}
-
-CAPABILITIES = {
-    'firefox': webdriver.DesiredCapabilities.FIREFOX,
-    'chrome': webdriver.DesiredCapabilities.CHROME,
-    'ie': webdriver.DesiredCapabilities.INTERNETEXPLORER,
-    'opera': webdriver.DesiredCapabilities.OPERA
-}
-
 
 
 DEFAULT_SLEEPFACTOR = 1.0
@@ -236,28 +221,20 @@ def initialize(
 
     # driver
     try:
-        if local and not remote:
-            driver_url = local
-        else:
-            driver_url = remote or REMOTE_WEBDRIVER_URL
-        try:
-            driver = webdriver.Remote(driver_url, CAPABILITIES[(browser or DEFAULT_BROWSER)])
-        except KeyError:
-            print 'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
-            return exits.ARGUMENT_ERROR
+        driver = util.get_driver((browser or DEFAULT_BROWSER), local, remote)
 
         # run the tests
         try:
             logs = dispatch(driver, mode, tests)
         except Exception as exc: # pylint: disable=W0703
             raise
-            print str(exc)
-            return exits.ERROR
+            # print str(exc)
+            # return exits.ERROR
         return exits.OK
     finally:
         try:
             driver.quit()
-        except UnboundLocalError:
+        except UnboundLocalError: # pragma: no cover
             pass
 
 def main():

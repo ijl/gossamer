@@ -47,11 +47,3 @@ def dispatch(driver, mode, tests):
     except Exception as exc: # todo how can this fail
         raise exc
     return run_log
-
-
-def main(*args, **kwargs):
-    """
-    Placeholder for unittest, TODO
-    """
-    raise NotImplementedError
-

@@ -23,7 +23,7 @@ from huxley.consts import modes
 from huxley.errors import TestError
 from huxley.images import images_identical, image_diff
 
-class TestStep(object):
+class TestStep(object): # pylint: disable=R0903
     """
     Base class of test actions, not useful in itself.
     """
@@ -35,7 +35,7 @@ class TestStep(object):
         raise NotImplementedError
 
 
-class ClickTestStep(TestStep):
+class ClickTestStep(TestStep): # pylint: disable=R0903
     """
     Click action by the user.
     """
@@ -54,7 +54,7 @@ class ClickTestStep(TestStep):
         )
 
 
-class KeyTestStep(TestStep):
+class KeyTestStep(TestStep): # pylint: disable=R0903
     """
     Typing action by the user.
     """

@@ -20,12 +20,16 @@ import os
 import unittest
 import sys
 
-from huxley.main import main
+from huxley.main import dispatch
 from huxley.consts import modes, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL
+from huxley import util
 
 # Python unittest integration. These fail when the screen shots change, and they
 # will pass the next time since they write new ones.
-class HuxleyTestCase(unittest.TestCase):
+class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
+    """
+    unittest case... why not use setUp and tearDown? multiple huxley files?
+    """
     mode = None
     local_webdriver_url = LOCAL_WEBDRIVER_URL
     remote_webdriver_url = REMOTE_WEBDRIVER_URL
@@ -36,31 +40,28 @@ class HuxleyTestCase(unittest.TestCase):
         print '-' * len(msg)
         print msg
         print '-' * len(msg)
-        if self.mode == modes.RECORD:
-            r = main(
-                url,
-                filename,
-                postdata,
-                local=self.local_webdriver_url,
-                remote=self.remote_webdriver_url,
-                record=True
-            )
-        else:
-            r = main(
-                url,
-                filename,
-                postdata,
-                remote=self.remote_webdriver_url,
-                sleepfactor=sleepfactor,
-                autorerecord=not self.playback_only
-            )
 
-        self.assertEqual(0, r, 
-            'New screenshots were taken and written. '
-            'Please be sure to review and check in.')
+        browser = 'firefox' # todo
+        cwd = os.getcwd() # os.abspath(filename)?
+
+        try:
+            driver = util.get_driver(browser)
+            tests = util.make_tests(filename, self.mode, cwd, 
+                postdata=postdata, sleepfactor=sleepfactor
+            )
+            logs = dispatch(driver, self.mode, tests)
+
+            # self.assertEqual(0, r, 
+            #     'New screenshots were taken and written. '
+            #     'Please be sure to review and check in.')
+        finally:
+            driver.quit()
 
 
 def unittest_main(module='__main__'):
+    """
+    unittest integration... TODO
+    """
     if len(sys.argv) > 1 and sys.argv[1] == 'record':
         # Create a new test by recording the user's browsing session
         HuxleyTestCase.mode = modes.RECORD
