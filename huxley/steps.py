@@ -22,7 +22,7 @@ class TestStep(object):
     def __init__(self, offset_time):
         self.offset_time = offset_time
 
-    def execute(self, run):
+    def execute(self, driver, settings):
         raise NotImplementedError
 
 
@@ -33,10 +33,10 @@ class ClickTestStep(TestStep):
         super(ClickTestStep, self).__init__(offset_time)
         self.pos = pos
 
-    def execute(self, run):
+    def execute(self, driver, settings):
         print '  Clicking', self.pos
         # Work around multiple bugs in WebDriver's implementation of click()
-        run.driver.execute_script(
+        driver.execute_script(
             'document.elementFromPoint(%d, %d).click();' % (self.pos.x, self.pos.y)
         )
 
@@ -48,15 +48,15 @@ class KeyTestStep(TestStep):
         super(KeyTestStep, self).__init__(offset_time)
         self.key = key
 
-    def execute(self, run):
+    def execute(self, driver, settings):
         print '  Typing', self.key
-        id = run.driver.execute_script('return document.activeElement.id;')
-        if id is None or id == '':
-            run.driver.execute_script(
+        eid = driver.execute_script('return document.activeElement.id;')
+        if eid is None or eid == '':
+            driver.execute_script(
                 'document.activeElement.id = %r;' % self.KEY_ID
             )
-            id = self.KEY_ID
-        run.driver.find_element_by_id(id).send_keys(self.key.lower())
+            eid = self.KEY_ID
+        driver.find_element_by_id(eid).send_keys(self.key.lower())
 
 
 class ScreenshotTestStep(TestStep):
@@ -64,22 +64,22 @@ class ScreenshotTestStep(TestStep):
         super(ScreenshotTestStep, self).__init__(offset_time)
         self.index = index
 
-    def get_path(self, run):
-        return os.path.join(run.path, 'screenshot' + str(self.index) + '.png')
+    def get_path(self, settings):
+        return os.path.join(settings.path, 'screenshot' + str(self.index) + '.png')
 
-    def execute(self, run):
+    def execute(self, driver, settings):
         print '  Taking screenshot', self.index
-        original = self.get_path(run)
-        new = os.path.join(run.path, 'last.png')
-        if run.mode == TestRunModes.RERECORD:
-            run.driver.save_screenshot(original)
+        original = self.get_path(settings)
+        new = os.path.join(settings.path, 'last.png')
+        if settings.mode == TestRunModes.RERECORD:
+            driver.save_screenshot(original)
         else:
-            run.driver.save_screenshot(new)
+            driver.save_screenshot(new)
             try:
                 if not images_identical(original, new):
-                    if run.save_diff:
-                        diffpath = os.path.join(run.path, 'diff.png')
-                        diff = image_diff(original, new, diffpath, run.diffcolor)
+                    if settings.save_diff:
+                        diffpath = os.path.join(settings.path, 'diff.png')
+                        diff = image_diff(original, new, diffpath, settings.diffcolor)
                         raise TestError(
                             ('Screenshot %s was different; compare %s with %s. See %s ' +
                              'for the comparison. diff=%r') % (
@@ -89,5 +89,5 @@ class ScreenshotTestStep(TestStep):
                     else:
                         raise TestError('Screenshot %s was different.' % self.index)
             finally:
-                if not run.save_diff:
+                if not settings.save_diff:
                     os.unlink(new)

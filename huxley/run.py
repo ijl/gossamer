@@ -21,6 +21,8 @@ from huxley.consts import TestRunModes
 from huxley.errors import TestError
 from huxley.steps import ScreenshotTestStep, ClickTestStep, KeyTestStep
 
+__all__ = ['playback', 'record', 'rerecord', ]
+
 class Point(object):
 
     def __init__(self, x, y):
@@ -33,6 +35,15 @@ class Point(object):
 
     def __repr__(self):
         return ''.join(('[', str(self.x), ', ', str(self.y), ']'))
+
+
+def prompt(display, options=None):
+    inp = raw_input(display)
+    if options:
+        if inp in options:
+            return True
+        return False
+    return True
 
 
 def get_post_js(url, postdata):
@@ -65,9 +76,9 @@ def navigate(driver, url):
 
 
 class Test(object):
-    def __init__(self, screen_size):
+    def __init__(self, screensize):
         self.steps = []
-        self.screen_size = screen_size
+        self.screensize = screensize
 
 
 class TestRun(object):
@@ -82,47 +93,41 @@ class TestRun(object):
         self.diffcolor = diffcolor
         self.save_diff = save_diff
 
-    @classmethod
-    def rerecord(cls, test, path, url, driver, sleepfactor, diffcolor, save_diff):
-        # did I break something by removing the driver=remote_driver pass from #record?
-        print 'Begin rerecord'
-        run = TestRun(test, path, url, driver, TestRunModes.RERECORD, diffcolor, save_diff)
-        run._playback(sleepfactor)
-        print
-        print 'Playing back to ensure the test is correct'
-        print
-        cls.playback(test, path, url, driver, sleepfactor, diffcolor, save_diff)
 
-    @classmethod
-    def playback(cls, test, path, url, driver, sleepfactor, diffcolor, save_diff):
-        print 'Begin playback'
-        run = TestRun(test, path, url, driver, TestRunModes.PLAYBACK, diffcolor, save_diff)
-        run._playback(sleepfactor)
+def rerecord(settings, driver, record):
+    """
+    Rerecord a given test
+    """
+    # did I break something by removing the driver=remote_driver pass from #record?
+    print
+    print 'Playing back to ensure the test is correct'
+    print
+    playback(settings, driver, record)
 
-    def _playback(self, sleepfactor):
-        self.driver.set_window_size(*self.test.screen_size)
-        navigate(self.driver, self.url)
-        last_offset_time = 0
-        for step in self.test.steps:
-            sleep_time = (step.offset_time - last_offset_time) * sleepfactor
-            print '  Sleeping for', sleep_time, 'ms'
-            time.sleep(float(sleep_time) / 1000)
-            step.execute(self)
-            last_offset_time = step.offset_time
 
-    @classmethod
-    def record(cls, driver, url, screen_size, path, diffcolor, sleepfactor, save_diff):
-        print 'Begin record'
-        try:
-            os.makedirs(path)
-        except:
-            pass
-        test = Test(screen_size)
-        run = TestRun(test, path, url, driver, TestRunModes.RECORD, diffcolor, save_diff)
-        driver.set_window_size(*screen_size)
-        navigate(driver, url)
-        start_time = driver.execute_script('return Date.now();')
-        driver.execute_script('''
+def record(settings, driver):
+    """
+    Record a given test.
+    """
+    print 'Begin record'
+    try:
+        os.makedirs(settings.path) # todo doesn't belong here
+    except:
+        pass
+    record = Test(settings.screensize)
+    run = TestRun(
+        record,
+        settings.path,
+        settings.url,
+        driver,
+        TestRunModes.RECORD,
+        settings.diffcolor,
+        settings.save_diff
+    )
+    driver.set_window_size(*settings.screensize)
+    navigate(driver, settings.navigate()) # was just url, not (url, postdata)?
+    start_time = driver.execute_script('return Date.now();')
+    driver.execute_script('''
 (function() {
 var events = [];
 window.addEventListener('click', function (e) { events.push([Date.now(), 'click', [e.clientX, e.clientY]]); }, true);
@@ -130,45 +135,63 @@ window.addEventListener('keyup', function (e) { events.push([Date.now(), 'keyup'
 window._getHuxleyEvents = function() { return events; };
 })();
 ''')
-        steps = []
-        while True:
-            if raw_input("Press enter to take a screenshot, or type Q+enter if you're done\n") in ('Q', 'q'):
-                break
-            screenshot_step = ScreenshotTestStep(
-                driver.execute_script('return Date.now();') - start_time, 
-                run, 
-                len(steps)
-            )
-            run.driver.save_screenshot(screenshot_step.get_path(run))
-            steps.append(screenshot_step)
-            print len(steps), 'screenshots taken'
-
-        # now capture the events
-        try:
-            events = driver.execute_script('return window._getHuxleyEvents();')
-        except:
-            raise TestError(
-                'Could not call window._getHuxleyEvents(). '
-                'This usually means you navigated to a new page, which is currently unsupported.'
-            )
-        for (timestamp, type, params) in events:
-            if type == 'click':
-                steps.append(ClickTestStep(timestamp - start_time, Point(*params)))
-            elif type == 'keyup':
-                steps.append(KeyTestStep(timestamp - start_time, params))
-
-        if len(steps) == 0:
-            raise Exception('TODO something about this')
-
-        test.steps = sorted(steps, key=operator.attrgetter('offset_time'))
-
-        print raw_input(
-            "\n"
-            "Up next, we'll re-run your actions to generate screenshots "
-            "to ensure they are pixel-perfect when running automatedriver." 
-            "Press enter to start."
+    steps = []
+    while True:
+        if prompt("Press enter to take a screenshot, "
+            "or type Q+enter if you're done\n", ('Q', 'q')):
+            break
+        screenshot_step = ScreenshotTestStep(
+            driver.execute_script('return Date.now();') - start_time, 
+            run, 
+            len(steps)
         )
-        print cls.rerecord(test, path, url, driver, sleepfactor, diffcolor, save_diff)
+        run.driver.save_screenshot(screenshot_step.get_path(run))
+        steps.append(screenshot_step)
+        print len(steps), 'screenshots taken'
 
-        return test
+    # now capture the events
+    try:
+        events = driver.execute_script('return window._getHuxleyEvents();')
+    except:
+        raise TestError(
+            'Could not call window._getHuxleyEvents(). '
+            'This usually means you navigated to a new page, '
+            'which is currently unsupported.'
+        )
+    for (timestamp, type, params) in events:
+        if type == 'click':
+            steps.append(ClickTestStep(timestamp - start_time, Point(*params)))
+        elif type == 'keyup':
+            steps.append(KeyTestStep(timestamp - start_time, params))
 
+    if len(steps) == 0:
+        raise Exception('TODO something about this')
+
+    record.steps = sorted(steps, key=operator.attrgetter('offset_time'))
+
+    prompt(
+        "\n"
+        "Up next, we'll re-run your actions to generate screenshots "
+        "to ensure they are pixel-perfect when running automated." 
+        "Press enter to start."
+    )
+    print rerecord(settings, driver, record)
+
+    return record
+
+
+
+def playback(settings, driver, record):
+    """
+    Playback a given test.
+    """
+    driver.set_window_size(*record.screensize)
+    navigate(driver, settings.navigate())
+    last_offset_time = 0
+    for step in record.steps:
+        sleep_time = (step.offset_time - last_offset_time) * settings.sleepfactor
+        print '  Sleeping for', sleep_time, 'ms'
+        time.sleep(float(sleep_time) / 1000)
+        step.execute(driver, settings)
+        last_offset_time = step.offset_time
+    return 0

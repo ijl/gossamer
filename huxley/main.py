@@ -26,6 +26,10 @@ from huxley.run import TestRun
 from huxley.errors import TestError
 
 
+def record(settings, driver):
+    pass
+
+
 def main(
         url,
         filename,
@@ -33,22 +37,26 @@ def main(
         record=False,
         rerecord=False,
         sleepfactor=1.0,
-        browser='firefox',
+        browser=None,
         remote=None,
         local=None,
-        diffcolor='0,255,0',
-        screensize='1024x768',
+        diffcolor=None,
+        screensize=None,
         autorerecord=False,
         save_diff=False,
-        driver=None
+        driver=None,
+        settings=None
     ):
 
+    # TODO: not do this here; handle non-empty dir, incl. 0-length .json file as failed record
     try:
         os.makedirs(filename)
     except:
         pass
 
-    diffcolor = tuple(int(x) for x in diffcolor.split(','))
+    # TODO: not load json here
+    # TODO: paths that (1) read existing JSON and (2) write new JSON should be separated
+    #       so we handle duplicate tests etc. in CLI setup
     jsonfile = os.path.join(filename, 'record.json')
 
     with closing(driver) as driver:

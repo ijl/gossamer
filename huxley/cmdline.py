@@ -21,7 +21,11 @@ import sys
 import plac
 from selenium import webdriver
 
+import jsonpickle
+
+from huxley.consts import TestRunModes
 from huxley.main import main as huxleymain
+from huxley import run
 from huxley.version import __version__
 
 
@@ -29,6 +33,32 @@ class ExitCodes(object):
     OK = 0
     NEW_SCREENSHOTS = 1
     ERROR = 2
+
+
+class Settings(object):
+    """
+    Hold validated settings for a specific test run.
+    """
+
+    def __init__(self, 
+            url, mode, path, 
+            sleepfactor, screensize, postdata, 
+            diffcolor, save_diff
+        ):
+        self.url = url
+        self.mode = mode
+        self.path = path
+        self.sleepfactor = sleepfactor
+        self.screensize = screensize
+        self.postdata = postdata
+        self.diffcolor = diffcolor
+        self.save_diff = save_diff
+
+    def navigate(self):
+        """
+        Return data in form expected by :func:`huxley.run.navigate`.
+        """
+        return (self.url, self.postdata)
 
 
 DRIVERS = {
@@ -161,6 +191,8 @@ def _main(
     if record and rerecord: # todo
         raise Exception("Can't have both, TODO")
 
+    # TODO use `mode` attr
+
     if postdata:
         if postdata == '-':
             postdata = sys.stdin.read()
@@ -221,33 +253,54 @@ def _main(
                 'screensize',
                 '1024x768'
             )
+            mode = TestRunModes.PLAYBACK
+
+            settings = Settings(
+                url=url,
+                mode=mode,
+                path=filename,
+                sleepfactor=sleepfactor,
+                screensize=screensize,
+                postdata=postdata,
+                diffcolor=diffcolor,
+                save_diff=save_diff
+            )
+
+            # TODO prepare all files, check overwriting, &c
+
+            if not record:
+                try:
+                    with open(os.path.join(filename, 'record.json'), 'r') as fp:
+                        recorded_run = jsonpickle.decode(fp.read())
+                except ValueError as exc:
+                    raise # todo error
+                except Exception as exc:
+                    raise exc
+
             if record:
-                run = huxleymain(
-                    url,
-                    filename,
-                    postdata,
-                    local=LOCAL_WEBDRIVER_URL,
-                    remote=REMOTE_WEBDRIVER_URL,
-                    browser=browser,
-                    sleepfactor=sleepfactor, # todo not used
-                    record=True,
-                    screensize=screensize,
-                    driver=driver
-                )
+                try:
+                    recorded_run = run.record(settings, driver)
+                except Exception as exc: # todo how can this fail
+                    raise exc
+                try:
+                    with open(os.path.join(filename, 'record.json'), 'w') as fp:
+                        fp.write(
+                            jsonpickle.encode(
+                                recorded_run
+                            )
+                        )
+                except Exception as exc: # todo how can this fail
+                    raise exc
+                print 'Test recorded successfully'
+                exit_code = 0
             else:
-                run = huxleymain(
-                    url,
-                    filename,
-                    postdata,
-                    remote=REMOTE_WEBDRIVER_URL,
-                    browser=browser,
-                    sleepfactor=sleepfactor,
-                    autorerecord=not playback_only,
-                    save_diff=save_diff,
-                    screensize=screensize,
-                    driver=driver
-                )
-            new_screenshots = new_screenshots or (run != 0)
+                try:
+                    run.playback(settings, driver, recorded_run)
+                except Exception as exc: # todo how can this fail
+                    raise exc
+                print 'Test played back successfully'
+                exit_code = 0
+            new_screenshots = new_screenshots or (exit_code != 0) # todo remove exit_code
             print
 
     if new_screenshots:
@@ -258,3 +311,5 @@ def _main(
 
 def main():
     sys.exit(plac.call(_main))
+
+# TODO close selenium window
