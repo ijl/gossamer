@@ -22,14 +22,9 @@ import os
 from huxley.consts import modes
 from huxley.errors import TestError
 from huxley.images import images_identical, image_diff
+from huxley import util
 
-class Window(object):
-    """
-    Persist state of the window at a given time... not a step, so todo.
-    """
-
-    def __init__(self, offset_time, x, y):
-        pass
+log = util.logger(__name__)
 
 class TestStep(object): # pylint: disable=R0903
     """
@@ -37,6 +32,7 @@ class TestStep(object): # pylint: disable=R0903
     """
 
     def __init__(self, offset_time):
+        self.delayer = None
         self.offset_time = offset_time
 
     def execute(self, driver, settings):
@@ -55,7 +51,7 @@ class Click(TestStep): # pylint: disable=R0903
         self.pos = pos
 
     def execute(self, driver, settings):
-        print '  Clicking', self.pos
+        log.debug("Clicking %s", self.pos)
         # Work around multiple bugs in WebDriver's implementation of click()
         driver.execute_script(
             'document.elementFromPoint(%d, %d).click();' % (self.pos.x, self.pos.y)
@@ -77,7 +73,10 @@ class Key(TestStep): # pylint: disable=R0903
         self.ecn = ecn if ecn and len(ecn) > 0 else None # element.className
         self.ecl = ecl if ecl and len(ecl) > 0 else None # element.classList
 
+        # TODO self.shift and numeric keys... get browser charset?
+
     def execute(self, driver, settings):
+        log.debug("Typing %s (shift %s)", self.key, self.shift)
         if self.eid:
             elm = driver.find_element_by_id(self.eid)
         elif self.ecn:
@@ -100,7 +99,7 @@ class Screenshot(TestStep):
         return os.path.join(settings.path, 'screenshot' + str(self.index) + '.png')
 
     def execute(self, driver, settings):
-        print '  Taking screenshot', self.index
+        log.debug("Taking screenshot %s", self.index)
         original = self.get_path(settings)
         new = os.path.join(settings.path, 'last.png')
         if settings.mode == modes.RERECORD:
@@ -135,6 +134,6 @@ class Scroll(TestStep):
         self.pos = pos
 
     def execute(self, driver, settings):
-        print  "Scrolling,"
+        log.debug("Scrolling to %s", self.pos)
         driver.execute_script("window.scrollBy(%s, %s)" % (self.pos.x, self.pos.y))
 

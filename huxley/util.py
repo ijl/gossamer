@@ -198,6 +198,9 @@ def make_tests(test_files, mode, cwd, **kwargs):
             test_config = dict(config.items(testname))
             url = config.get(testname, 'url')
 
+            if test_config.get('browser', 'chrome') != kwargs['browser']:
+                raise Exception # TODO
+
             default_filename = os.path.join(
                 os.path.dirname(file_name),
                 testname + '.huxley'
@@ -232,6 +235,7 @@ def make_tests(test_files, mode, cwd, **kwargs):
                 url=url,
                 mode=mode,
                 path=filename,
+                browser=kwargs['browser'],
                 sleepfactor=sleepfactor,
                 screensize=screensize,
                 postdata=postdata or test_config.get('postdata'),
@@ -244,3 +248,13 @@ def make_tests(test_files, mode, cwd, **kwargs):
 
     return tests
 
+
+def logger(name):
+    """
+    TODO
+    """
+    import logging
+    log = logging.getLogger(name)
+    log.addHandler(logging.StreamHandler())
+    log.setLevel(logging.DEBUG)
+    return log
