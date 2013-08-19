@@ -42,3 +42,13 @@ class DoNotOverwrite(Exception):
     """
     User indicates they don't want to overwrite an existing test.
     """
+
+class InvalidBrowser(Exception):
+    """
+    We don't recognize a given `browser` value.
+    """
+
+class InvalidWebDriverConfiguration(Exception):
+    """
+    WebDriver throws an exception while setting up.
+    """

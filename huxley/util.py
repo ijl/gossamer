@@ -21,6 +21,7 @@ import sys
 import json
 import jsonpickle
 import ConfigParser
+from selenium.common.exceptions import WebDriverException
 
 from selenium import webdriver
 
@@ -93,8 +94,15 @@ def get_driver(browser, local_webdriver=None, remote_webdriver=None):
     try:
         driver = webdriver.Remote(driver_url, CAPABILITIES[browser])
     except KeyError:
-        print 'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
-        return exits.ARGUMENT_ERROR
+        raise errors.InvalidBrowser(
+            'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
+        )
+    except WebDriverException as exc:
+        if exc.msg.startswith('The path to the driver executable must be set'):
+            raise errors.InvalidWebDriverConfiguration(
+                'WebDriver cannot locate the driver for %s: %s' % (browser, exc.msg)
+            )
+        raise
     return driver
 
 
