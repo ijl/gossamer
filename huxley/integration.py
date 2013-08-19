@@ -38,7 +38,7 @@ class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
     def setUp(self):
         super(HuxleyTestCase, self).setup(self)
 
-    def huxley(self, filename, url, postdata=None, sleepfactor=1.0):
+    def huxley(self, filename, url, postdata=None):
         msg = 'Running Huxley test: ' + os.path.basename(filename)
         print
         print '-' * len(msg)
@@ -51,7 +51,7 @@ class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
         try:
             driver = util.get_driver(browser)
             tests = util.make_tests(filename, self.mode, cwd, 
-                postdata=postdata, sleepfactor=sleepfactor
+                postdata=postdata
             )
             logs = dispatch(driver, self.mode, tests)
 

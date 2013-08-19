@@ -44,8 +44,6 @@ class Click(TestStep): # pylint: disable=R0903
     Click action by the user.
     """
 
-    CLICK_ID = '_huxleyClick'
-
     def __init__(self, offset_time, pos):
         super(Click, self).__init__(offset_time)
         self.pos = pos
@@ -57,13 +55,19 @@ class Click(TestStep): # pylint: disable=R0903
             'document.elementFromPoint(%d, %d).click();' % (self.pos.x, self.pos.y)
         )
 
+class TextValue(TestStep): # pylint: disable=R0903
+
+    def __init__(self, offset_time, text):
+        super(TextValue, self).__init__(offset_time)
+
+    def execute(self, driver, settings):
+        pass
+
 
 class Key(TestStep): # pylint: disable=R0903
     """
     Typing action by the user.
     """
-
-    KEY_ID = '_huxleyKey'
 
     def __init__(self, offset_time, key, shift=None, eid=None, ecn=None, ecl=None):
         super(Key, self).__init__(offset_time)

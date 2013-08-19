@@ -52,3 +52,9 @@ class InvalidWebDriverConfiguration(Exception):
     """
     WebDriver throws an exception while setting up.
     """
+
+class PlaybackTimeout(Exception):
+    """
+    We waited for the page to be unchanging (via watching mutations), 
+    and the wait exceeded our timeout.
+    """

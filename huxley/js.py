@@ -20,6 +20,29 @@ now = """
 return Date.now();
 """
 
+# todo work around IE < 11 not supporting MutationObserver.. 
+# back to DOM Mutation Events?
+pageChangingObserver = """
+(function() {
+    window._huxleyLastModified = Date.now()
+    window._huxleyIsPageChanging = function(timeout) {
+        return timeout > ( Date.now() - window._huxleyLastModified );
+    }
+
+    var observer = new MutationObserver(
+        function(mutations) {
+            window._huxleyLastModified = Date.now();
+        }
+    );
+    observer.observe(document, { childList: true });
+})();
+"""
+
+def isPageChanging(timeout):
+    return """
+return window._huxleyIsPageChanging(%s);
+""" % timeout
+
 getHuxleyEvents = """
 (function() {
     var events = [];

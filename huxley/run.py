@@ -22,9 +22,8 @@ import operator
 import time
 
 # from huxley.consts import modes
-from huxley.errors import TestError, NoScreenshotsRecorded
 from huxley.steps import Screenshot, Click, Key, Scroll
-from huxley import util, js
+from huxley import util, js, errors
 
 __all__ = ['playback', 'record', 'rerecord', ]
 
@@ -91,13 +90,15 @@ class Test(object): # pylint: disable=R0903
     TODO: why only those two attrs?
     """
 
-    def __init__(self, screensize, steps=None):
+    def __init__(self, browser, screensize, steps=None):
+        self.browser = browser
         self.screensize = screensize
         self.steps = steps or []
 
     def __repr__(self):
-        return "%s: %s %r" % (
+        return "%s: %s %s %r" % (
             self.__class__.__name__,
+            self.browser,
             self.screensize,
             self.steps
         )
@@ -155,6 +156,7 @@ def record(driver, settings):
     navigate(driver, settings.navigate()) # was just url, not (url, postdata)?
     start_time = driver.execute_script(js.now)
     driver.execute_script(js.getHuxleyEvents)
+    driver.execute_script(js.pageChangingObserver)
 
     steps = []
     while True:
@@ -174,7 +176,7 @@ def record(driver, settings):
             (len(steps), 's' if len(steps) > 1 else '')
         )
     if len(steps) == 0:
-        raise NoScreenshotsRecorded(
+        raise errors.NoScreenshotsRecorded(
             'No screenshots recorded for %s--please use at least one' % \
                 settings.name
         )
@@ -185,7 +187,7 @@ def record(driver, settings):
         print events
     except:
         # todo fix...
-        raise TestError(
+        raise errors.TestError(
             'Could not call window._getHuxleyEvents(). '
             'This usually means you navigated to a new page, '
             'which is currently unsupported.'
@@ -193,9 +195,10 @@ def record(driver, settings):
     if type(events) in (unicode, str) and events.startswith(
                                     'A script on this page may be busy, '
                                     'or it may have stopped responding.'):
-        raise TestError('Event-capturing script was unresponsive.')
+        raise errors.TestError('Event-capturing script was unresponsive.')
     
     record = Test( # pylint: disable=W0621
+        browser = settings.browser,
         screensize = settings.screensize,
         steps = process_steps(steps, events, start_time)
     )
@@ -221,21 +224,37 @@ def playback(driver, settings, record): # pylint: disable=W0621
         sys.stdout.write('Playing back %s ... ' % settings.name) # todo huxleyfile.name
     sys.stdout.flush()
 
-    driver.delete_all_cookies()
-    driver.set_window_size(*record.screensize)
-    navigate(driver, settings.navigate())
+    try:
+        driver.delete_all_cookies()
+        driver.set_window_size(*record.screensize)
+        navigate(driver, settings.navigate())
+        driver.execute_script(js.pageChangingObserver)
+    except Exception:
+        # TODO: webdriver can become unresponsive
+        raise
+
+    time.sleep(1) # todo, initial load
 
     passing = True
     try:
-        print # todo
-        last_offset_time = 0
         for step in record.steps:
-            print step
-            sleep_time = (step.offset_time - last_offset_time) * settings.sleepfactor
-            print '  Sleeping for', sleep_time, 'ms'
-            time.sleep(float(sleep_time) / 1000)
-            step.execute(driver, settings)
-            last_offset_time = step.offset_time
+
+            time.sleep(0.25) # minimum, todo
+            if isinstance(step, Screenshot):
+                time.sleep(0.75) # careful, todo
+
+            timeout = 0
+            while timeout < 150:
+                if not driver.execute_script(js.isPageChanging(100)): # milliseconds
+                    step.execute(driver, settings)
+                    break
+                else:
+                    timeout += 1
+            if timeout == 150:
+                raise errors.PlaybackTimeout(
+                    '%s timed out while waiting for the page to be static.' % settings.name
+                )
+
     except Exception as exc:
         passing = False
         # todo
