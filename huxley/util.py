@@ -220,10 +220,6 @@ def make_tests(test_files, mode, cwd, **kwargs):
             else:
                 recorded_run = None
 
-            sleepfactor = kwargs.pop('sleepfactor', None) or float(test_config.get(
-                'sleepfactor',
-                1.0
-            ))
             screensize = tuple(int(x) for x in (kwargs.pop('screensize', None) or test_config.get(
                 'screensize',
                 '1024x768'
@@ -236,7 +232,6 @@ def make_tests(test_files, mode, cwd, **kwargs):
                 mode=mode,
                 path=filename,
                 browser=kwargs['browser'],
-                sleepfactor=sleepfactor,
                 screensize=screensize,
                 postdata=postdata or test_config.get('postdata'),
                 diffcolor=diffcolor,

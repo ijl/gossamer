@@ -25,7 +25,7 @@ import plac
 from huxley.consts import modes, exits, \
     DEFAULT_WEBDRIVER, DEFAULT_TESTFILE, \
     DEFAULT_DIFFCOLOR, DEFAULT_SCREENSIZE, \
-    DEFAULT_SLEEPFACTOR, DEFAULT_BROWSER
+    DEFAULT_BROWSER
 from huxley import util, errors
 from huxley.main import dispatch
 from huxley.version import __version__
@@ -56,8 +56,8 @@ class Settings(object): # pylint: disable=R0903,R0902
     """
 
     def __init__(self, 
-            name, url, mode, path,
-            sleepfactor, screensize, postdata,
+            name, url, mode, path, browser,
+            screensize, postdata,
             diffcolor, save_diff, desc=None
         ): # pylint: disable=R0913
         self.name = name
@@ -65,7 +65,7 @@ class Settings(object): # pylint: disable=R0903,R0902
         self.url = url
         self.mode = mode
         self.path = path
-        self.sleepfactor = sleepfactor
+        self.browser = browser
         self.screensize = screensize
         self.postdata = postdata
         self.diffcolor = diffcolor
@@ -118,12 +118,6 @@ class Settings(object): # pylint: disable=R0903,R0902
         metavar=DEFAULT_WEBDRIVER
     ),
 
-    sleepfactor = plac.Annotation(
-        'Sleep interval multiplier',
-        'option', 's', float,
-        metavar=DEFAULT_SLEEPFACTOR
-    ),
-
     browser = plac.Annotation(
         'Browser to use, either firefox, chrome, phantomjs, ie, or opera',
         'option', 'b', str,
@@ -163,6 +157,9 @@ class Settings(object): # pylint: disable=R0903,R0902
     # todo: verbose?
 )
 
+# TODO: when playing back, test if browsers match
+#       firefox and chrome do screenshot dimensions differently, for example
+
 def initialize(
         names=None,
         testfile=None,
@@ -171,7 +168,6 @@ def initialize(
         local=None,
         remote=None,
         postdata=None,
-        sleepfactor=None,
         browser=None,
         screensize=None,
         diffcolor=None,
@@ -191,7 +187,7 @@ def initialize(
         print 'Huxley ' + __version__
         return exits.OK
 
-    sys.stdout.write('Initializing huxley and opening webdriver...\n')
+    sys.stdout.write('Initializing huxley and opening WebDriver...\n')
     sys.stdout.flush()
 
     names = names.split(',') if names else None
@@ -217,7 +213,7 @@ def initialize(
         mode = modes.PLAYBACK
 
     attrs = (
-        'names', 'local', 'remote', 'postdata', 'sleepfactor', 
+        'names', 'local', 'remote', 'postdata',
         'browser', 'screensize', 'diffcolor', 'save_diff', 'overwrite'
     )
     options = {
