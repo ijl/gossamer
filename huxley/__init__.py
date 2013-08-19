@@ -17,5 +17,6 @@ See main.py.
 """
 
 from huxley.integration import HuxleyTestCase, unittest_main
+from huxley.version import __version__
 
 __all__ = ['HuxleyTestCase', 'unittest_main', ]
