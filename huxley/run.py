@@ -23,7 +23,7 @@ import time
 
 # from huxley.consts import modes
 from huxley.errors import TestError, NoScreenshotsRecorded
-from huxley.steps import ScreenshotTestStep, ClickTestStep, KeyTestStep
+from huxley.steps import Screenshot, Click, Key, Scroll
 from huxley import util, js
 
 __all__ = ['playback', 'record', 'rerecord', ]
@@ -134,12 +134,13 @@ def process_steps(steps, events, start_time):
     process events from the user agent into our objects
     todo: combine multiple scroll events?
     """
-    steps = []
     for (timestamp, action, params) in events:
         if action == 'click':
-            steps.append(ClickTestStep(timestamp - start_time, Point(*params)))
+            steps.append(Click(timestamp - start_time, Point(*params)))
         elif action == 'keyup':
-            steps.append(KeyTestStep(timestamp - start_time, params))
+            steps.append(Key(timestamp - start_time, key=params[0], shift=params[1], eid=params[2], ecn=params[3], ecl=params[4]))
+        elif action == 'scroll':
+            steps.append(Scroll(timestamp - start_time, Point(*params)))
 
     # TODO, steps: truncate events after last screenshot
     return sorted(steps, key=operator.attrgetter('offset_time'))
@@ -149,9 +150,10 @@ def record(driver, settings):
     """
     Record a given test.
     """
+    driver.delete_all_cookies()
     driver.set_window_size(*settings.screensize)
     navigate(driver, settings.navigate()) # was just url, not (url, postdata)?
-    start_time = driver.execute_script('return Date.now();')
+    start_time = driver.execute_script(js.now)
     driver.execute_script(js.getHuxleyEvents)
 
     steps = []
@@ -161,8 +163,8 @@ def record(driver, settings):
             break
         sys.stdout.write('Taking screenshot ... ')
         sys.stdout.flush()
-        screenshot_step = ScreenshotTestStep(
-            driver.execute_script('return Date.now();') - start_time, 
+        screenshot_step = Screenshot(
+            driver.execute_script(js.now) - start_time, 
             len(steps)
         )
         driver.save_screenshot(screenshot_step.get_path(settings))
@@ -180,9 +182,7 @@ def record(driver, settings):
     # now capture the events
     try:
         events = driver.execute_script('return window._getHuxleyEvents();')
-        # print '-'*70
-        # print events
-        # print '-'*70
+        print events
     except:
         # todo fix...
         raise TestError(
@@ -211,7 +211,6 @@ def record(driver, settings):
     return record
 
 
-
 def playback(driver, settings, record): # pylint: disable=W0621
     """
     Playback a given test.
@@ -221,16 +220,28 @@ def playback(driver, settings, record): # pylint: disable=W0621
     else:
         sys.stdout.write('Playing back %s ... ' % settings.name) # todo huxleyfile.name
     sys.stdout.flush()
+
+    driver.delete_all_cookies()
     driver.set_window_size(*record.screensize)
     navigate(driver, settings.navigate())
-    last_offset_time = 0
-    for step in record.steps:
-        sleep_time = (step.offset_time - last_offset_time) * settings.sleepfactor
-        print '  Sleeping for', sleep_time, 'ms'
-        time.sleep(float(sleep_time) / 1000)
-        step.execute(driver, settings)
-        last_offset_time = step.offset_time
-    sys.stdout.write('ok.\n')
+
+    passing = True
+    try:
+        print # todo
+        last_offset_time = 0
+        for step in record.steps:
+            print step
+            sleep_time = (step.offset_time - last_offset_time) * settings.sleepfactor
+            print '  Sleeping for', sleep_time, 'ms'
+            time.sleep(float(sleep_time) / 1000)
+            step.execute(driver, settings)
+            last_offset_time = step.offset_time
+    except Exception as exc:
+        passing = False
+        # todo
+        raise
+
+    sys.stdout.write('ok.\n' if passing else 'FAIL.\n')
     sys.stdout.flush()
-    return None
+    return passing
 

@@ -16,6 +16,9 @@
 JavaScript to be executed in the testing user agent.
 """
 
+now = """
+return Date.now();
+"""
 
 getHuxleyEvents = """
 (function() {
@@ -28,7 +31,18 @@ getHuxleyEvents = """
     );
     window.addEventListener(
         'keyup',
-        function (e) { events.push([Date.now(), 'keyup', String.fromCharCode(e.keyCode)]); },
+        function (e) { 
+            events.push([
+                Date.now(), 
+                'keyup', [
+                    String.fromCharCode(e.keyCode), 
+                    e.shiftKey,
+                    e.target.id, 
+                    e.target.className, 
+                    e.target.classList
+                ]
+            ]); 
+        },
         true
     );
     window.addEventListener(

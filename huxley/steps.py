@@ -23,6 +23,14 @@ from huxley.consts import modes
 from huxley.errors import TestError
 from huxley.images import images_identical, image_diff
 
+class Window(object):
+    """
+    Persist state of the window at a given time... not a step, so todo.
+    """
+
+    def __init__(self, offset_time, x, y):
+        pass
+
 class TestStep(object): # pylint: disable=R0903
     """
     Base class of test actions, not useful in itself.
@@ -35,7 +43,7 @@ class TestStep(object): # pylint: disable=R0903
         raise NotImplementedError
 
 
-class ClickTestStep(TestStep): # pylint: disable=R0903
+class Click(TestStep): # pylint: disable=R0903
     """
     Click action by the user.
     """
@@ -43,7 +51,7 @@ class ClickTestStep(TestStep): # pylint: disable=R0903
     CLICK_ID = '_huxleyClick'
 
     def __init__(self, offset_time, pos):
-        super(ClickTestStep, self).__init__(offset_time)
+        super(Click, self).__init__(offset_time)
         self.pos = pos
 
     def execute(self, driver, settings):
@@ -54,35 +62,38 @@ class ClickTestStep(TestStep): # pylint: disable=R0903
         )
 
 
-class KeyTestStep(TestStep): # pylint: disable=R0903
+class Key(TestStep): # pylint: disable=R0903
     """
     Typing action by the user.
     """
 
     KEY_ID = '_huxleyKey'
 
-    def __init__(self, offset_time, key):
-        super(KeyTestStep, self).__init__(offset_time)
+    def __init__(self, offset_time, key, shift=None, eid=None, ecn=None, ecl=None):
+        super(Key, self).__init__(offset_time)
         self.key = key
+        self.shift = shift
+        self.eid = eid if eid and len(eid) > 0 else None # element.id
+        self.ecn = ecn if ecn and len(ecn) > 0 else None # element.className
+        self.ecl = ecl if ecl and len(ecl) > 0 else None # element.classList
 
     def execute(self, driver, settings):
-        print '  Typing', self.key
-        eid = driver.execute_script('return document.activeElement.id;')
-        if eid is None or eid == '':
-            driver.execute_script(
-                'document.activeElement.id = %r;' % self.KEY_ID
-            )
-            eid = self.KEY_ID
-        driver.find_element_by_id(eid).send_keys(self.key.lower())
+        if self.eid:
+            elm = driver.find_element_by_id(self.eid)
+        elif self.ecn:
+            elm = driver.find_element_by_class_name(self.ecn)
+        elif self.ecl:
+            elm = driver.find_element_by_class_list(self.ecl)
+        elm.send_keys((self.key.lower() if not self.shift else self.key))
 
 
-class ScreenshotTestStep(TestStep):
+class Screenshot(TestStep):
     """
     Screenshot taken by the user.
     """
     
     def __init__(self, offset_time, index):
-        super(ScreenshotTestStep, self).__init__(offset_time)
+        super(Screenshot, self).__init__(offset_time)
         self.index = index
 
     def get_path(self, settings):
@@ -102,8 +113,8 @@ class ScreenshotTestStep(TestStep):
                         diffpath = os.path.join(settings.path, 'diff.png')
                         diff = image_diff(original, new, diffpath, settings.diffcolor)
                         raise TestError(
-                            ('Screenshot %s was different; compare %s with %s. See %s ' +
-                             'for the comparison. diff=%r') % (
+                            'Screenshot %s was different; compare %s with %s. See %s '
+                            'for the comparison. diff=%r' % (
                                 self.index, original, new, diffpath, diff
                             )
                         )
@@ -112,3 +123,18 @@ class ScreenshotTestStep(TestStep):
             finally:
                 if not settings.save_diff:
                     os.unlink(new)
+
+
+class Scroll(TestStep):
+    """
+    Scrolling action on the page.
+    """
+
+    def __init__(self, offset_time, pos):
+        super(Scroll, self).__init__(offset_time)
+        self.pos = pos
+
+    def execute(self, driver, settings):
+        print  "Scrolling,"
+        driver.execute_script("window.scrollBy(%s, %s)" % (self.pos.x, self.pos.y))
+
