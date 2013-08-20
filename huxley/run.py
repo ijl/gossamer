@@ -154,11 +154,12 @@ def _begin_browsing(driver, settings):
     """
     try:
         driver.delete_all_cookies()
-        # if settings.cookies is not None:
-        #     for cookie in settings.cookies:
-        #         driver.add_cookie(cookie)
         driver.set_window_size(*settings.screensize)
         navigate(driver, settings.navigate())
+        if settings.cookies is not None and len(settings.cookies) > 0:
+            for cookie in settings.cookies:
+                driver.add_cookie(cookie)
+            driver.refresh() # selenium issue. this isn't right and annoyingly slow. TODO.
     except WebDriverException as exc:
         if exc.msg.startswith("Error communicating with the remote browser"):
             raise errors.WebDriverWentAway(
