@@ -18,8 +18,14 @@ Compare screenshots taken via the webdriver.
 
 import math
 
-import Image
-import ImageChops
+#try:
+    # Pillow
+from PIL import Image
+from PIL import ImageChops
+# except ImportError: # pragma: no cover
+#     # PIL--keep around?
+#     import Image
+#     import ImageChops
 
 from huxley.errors import TestError
 

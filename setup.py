@@ -9,9 +9,9 @@ setup(
     version = huxley.__version__,
     packages = find_packages(),
     install_requires = [
-        'selenium==2.32.0',
+        'selenium>=2.35.0',
         'plac==0.9.1',
-        'PIL==1.1.7',
+        'pillow==2.1.0',
         'jsonpickle==0.4.0'
     ],
     package_data={'': ['requirements.txt']},
