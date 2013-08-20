@@ -76,6 +76,7 @@ class Key(TestStep): # pylint: disable=R0903
         self.eid = eid if eid and len(eid) > 0 else None # element.id
         self.ecn = ecn if ecn and len(ecn) > 0 else None # element.className
         self.ecl = ecl if ecl and len(ecl) > 0 else None # element.classList
+        # todo identifiers exc
 
         # TODO self.shift and numeric keys... get browser charset?
 
@@ -87,6 +88,8 @@ class Key(TestStep): # pylint: disable=R0903
             elm = driver.find_element_by_class_name(self.ecn)
         elif self.ecl:
             elm = driver.find_element_by_class_list(self.ecl)
+        else:
+            raise Exception('No identifiers for %r' % self)
         elm.send_keys((self.key.lower() if not self.shift else self.key))
 
 

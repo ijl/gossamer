@@ -21,6 +21,8 @@ import json
 import operator
 import time
 
+from selenium.common.exceptions import WebDriverException
+
 # from huxley.consts import modes
 from huxley.steps import Screenshot, Click, Key, Scroll
 from huxley import util, js, errors
@@ -130,7 +132,7 @@ def rerecord(driver, settings, record): # pylint: disable=W0621
     return playback(settings, driver, record)
 
 
-def process_steps(steps, events, start_time):
+def _process_steps(steps, events, start_time):
     """
     process events from the user agent into our objects
     todo: combine multiple scroll events?
@@ -146,14 +148,34 @@ def process_steps(steps, events, start_time):
     # TODO, steps: truncate events after last screenshot
     return sorted(steps, key=operator.attrgetter('offset_time'))
 
+def _begin_browsing(driver, settings):
+    """
+    Prepare the browser for the test to begin.
+    """
+    try:
+        driver.delete_all_cookies()
+        # if settings.cookies is not None:
+        #     for cookie in settings.cookies:
+        #         driver.add_cookie(cookie)
+        driver.set_window_size(*settings.screensize)
+        navigate(driver, settings.navigate())
+    except WebDriverException as exc:
+        if exc.msg.startswith("Error communicating with the remote browser"):
+            raise errors.WebDriverWentAway(
+                "Cannot connect to the WebDriver browser: %s" % str(exc)
+            )
+        elif exc.msg.startswith("<unknown>: SecurityError: DOM Exception"):
+            raise errors.WebDriverSecurityError(
+                "WebDriver experienced a security error: %s" % str(exc)
+            )
+        raise
+
 
 def record(driver, settings):
     """
     Record a given test.
     """
-    driver.delete_all_cookies()
-    driver.set_window_size(*settings.screensize)
-    navigate(driver, settings.navigate()) # was just url, not (url, postdata)?
+    _begin_browsing(driver, settings)
     start_time = driver.execute_script(js.now)
     driver.execute_script(js.getHuxleyEvents)
     driver.execute_script(js.pageChangingObserver)
@@ -200,7 +222,7 @@ def record(driver, settings):
     record = Test( # pylint: disable=W0621
         browser = settings.browser,
         screensize = settings.screensize,
-        steps = process_steps(steps, events, start_time)
+        steps = _process_steps(steps, events, start_time)
     )
 
     util.prompt(
@@ -224,17 +246,8 @@ def playback(driver, settings, record): # pylint: disable=W0621
         sys.stdout.write('Playing back %s ... ' % settings.name) # todo huxleyfile.name
     sys.stdout.flush()
 
-    try:
-        driver.delete_all_cookies()
-        driver.set_window_size(*record.screensize)
-        navigate(driver, settings.navigate())
-        driver.execute_script(js.pageChangingObserver)
-    except WebDriverException as exc:
-        if exc.msg.startswith("Error communicating with the remote browser"):
-            raise errors.WebDriverWentAway(
-                'Cannot connect to the WebDriver browser: %s' % str(exc)
-            )
-        raise
+    _begin_browsing(driver, settings)
+    driver.execute_script(js.pageChangingObserver)
 
     time.sleep(1) # todo, initial load
 
@@ -255,7 +268,8 @@ def playback(driver, settings, record): # pylint: disable=W0621
                     timeout += 1
             if timeout == 150:
                 raise errors.PlaybackTimeout(
-                    '%s timed out while waiting for the page to be static.' % settings.name
+                    '%s timed out while waiting for the page to be static.' \
+                        % settings.name
                 )
 
     except Exception as exc:

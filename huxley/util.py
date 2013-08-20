@@ -196,7 +196,18 @@ def make_tests(test_files, mode, cwd, **kwargs):
                 return exits.ERROR
 
             test_config = dict(config.items(testname))
-            url = config.get(testname, 'url')
+
+            url = test_config.get('url', None)
+            if not url:
+                raise errors.InvalidHuxleyfile(
+                    '%s did not have a `url` argument' % testname
+                )
+
+            cookies = test_config.get('cookies', None)
+            if cookies and len(cookies) > 0:
+                cookies = json.loads(cookies)
+            else:
+                cookies = None
 
             # if test_config.get('browser', None) != kwargs['browser']:
             #     raise Exception # TODO
@@ -235,7 +246,8 @@ def make_tests(test_files, mode, cwd, **kwargs):
                 screensize=screensize,
                 postdata=postdata or test_config.get('postdata'),
                 diffcolor=diffcolor,
-                save_diff=kwargs.pop('save_diff', None)
+                save_diff=kwargs.pop('save_diff', None),
+                cookies=cookies
             )
 
             tests[testname] = TestRun(settings, recorded_run)

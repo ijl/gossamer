@@ -57,11 +57,10 @@ class Settings(object): # pylint: disable=R0903,R0902
 
     def __init__(self, 
             name, url, mode, path, browser,
-            screensize, postdata,
-            diffcolor, save_diff, desc=None
+            screensize, postdata, 
+            diffcolor, save_diff, cookies=None, desc=None
         ): # pylint: disable=R0913
         self.name = name
-        self.desc = desc
         self.url = url
         self.mode = mode
         self.path = path
@@ -70,6 +69,8 @@ class Settings(object): # pylint: disable=R0903,R0902
         self.postdata = postdata
         self.diffcolor = diffcolor
         self.save_diff = save_diff
+        self.desc = desc
+        self.cookies = cookies
 
     def navigate(self):
         """

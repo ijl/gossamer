@@ -48,6 +48,11 @@ class InvalidBrowser(Exception):
     We don't recognize a given `browser` value.
     """
 
+class InvalidHuxleyfile(Exception):
+    """
+    An error parsing the Huxleyfile.
+    """
+
 class InvalidWebDriverConfiguration(Exception):
     """
     WebDriver throws an exception while setting up.
@@ -58,7 +63,13 @@ class PlaybackTimeout(Exception):
     We waited for the page to be unchanging (via watching mutations), 
     and the wait exceeded our timeout.
     """
+
 class WebDriverWentAway(Exception):
     """
     WebDriver raises an inability to communicate with the user agent.
+    """
+
+class WebDriverSecurityError(Exception):
+    """
+    WebDriver gave a security error.
     """
