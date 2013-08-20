@@ -198,8 +198,8 @@ def make_tests(test_files, mode, cwd, **kwargs):
             test_config = dict(config.items(testname))
             url = config.get(testname, 'url')
 
-            if test_config.get('browser', 'chrome') != kwargs['browser']:
-                raise Exception # TODO
+            # if test_config.get('browser', None) != kwargs['browser']:
+            #     raise Exception # TODO
 
             default_filename = os.path.join(
                 os.path.dirname(file_name),

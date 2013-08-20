@@ -229,8 +229,11 @@ def playback(driver, settings, record): # pylint: disable=W0621
         driver.set_window_size(*record.screensize)
         navigate(driver, settings.navigate())
         driver.execute_script(js.pageChangingObserver)
-    except Exception:
-        # TODO: webdriver can become unresponsive
+    except WebDriverException as exc:
+        if exc.msg.startswith("Error communicating with the remote browser"):
+            raise errors.WebDriverWentAway(
+                'Cannot connect to the WebDriver browser: %s' % str(exc)
+            )
         raise
 
     time.sleep(1) # todo, initial load

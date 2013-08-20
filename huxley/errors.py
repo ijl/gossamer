@@ -58,3 +58,7 @@ class PlaybackTimeout(Exception):
     We waited for the page to be unchanging (via watching mutations), 
     and the wait exceeded our timeout.
     """
+class WebDriverWentAway(Exception):
+    """
+    WebDriver raises an inability to communicate with the user agent.
+    """
