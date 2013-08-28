@@ -42,7 +42,12 @@ def rmsdiff_2011(im1, im2):
 def images_identical(path1, path2):
     im1 = Image.open(path1)
     im2 = Image.open(path2)
-    return ImageChops.difference(im1, im2).getbbox() is None
+    try:
+        return ImageChops.difference(im1, im2).getbbox() is None
+    except ValueError:
+        raise errors.ImageNotFound(
+            'Cannot find one of: %s, %s' % (path1, path2)
+        )
 
 
 def image_diff(path1, path2, outpath, diffcolor):

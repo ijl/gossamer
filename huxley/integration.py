@@ -48,9 +48,11 @@ class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
         browser = DEFAULT_BROWSER # todo
         cwd = os.getcwd() # os.abspath(filename)?
 
+        # TODO data_dir
+        
         try:
             driver = util.get_driver(browser)
-            tests = util.make_tests(filename, self.mode, cwd, 
+            tests = util.make_tests(filename, self.mode, cwd, data_dir,
                 postdata=postdata
             )
             logs = dispatch(driver, self.mode, tests)

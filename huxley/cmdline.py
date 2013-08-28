@@ -131,7 +131,7 @@ class Settings(object): # pylint: disable=R0903,R0902
     ),
     diffcolor = plac.Annotation(
         'Diff color for errors in RGB (i.e. 0,255,0)',
-        'option', 'd', str,
+        'option', 'c', str,
         metavar=DEFAULT_DIFFCOLOR
     ),
 
@@ -148,6 +148,11 @@ class Settings(object): # pylint: disable=R0903,R0902
     overwrite = plac.Annotation(
         'Overwrite existing tests without asking',
         'flag', 'o'
+    ),
+
+    data_dir = plac.Annotation(
+        'Directory in which tests should be stored',
+        'option', 'd', str,
     ),
 
     version = plac.Annotation(
@@ -174,6 +179,7 @@ def initialize(
         diffcolor=None,
         save_diff=False,
         overwrite=False,
+        data_dir=None,
         version=False
     ): # pylint: disable=R0913,W0613
         # autorerecord=False,
@@ -202,6 +208,13 @@ def initialize(
         print 'No Huxleyfile found'
         return exits.ERROR
 
+    # data_dir
+    if not data_dir:
+        data_dir = os.path.join(os.getcwd(), 'huxleeey')
+    else:
+        if not os.path.isabs(data_dir):
+            data_dir = os.path.join(os.getcwd(), data_dir)
+
     # mode
     if record and rerecord:
         print 'Cannot specify both -r and -rr'
@@ -224,7 +237,7 @@ def initialize(
         
     # make tests using the test_files and mode we've resolved to
     try:
-        tests = util.make_tests(test_files, mode, cwd, **options)
+        tests = util.make_tests(test_files, mode, cwd, data_dir, **options)
     except errors.DoNotOverwrite as exc:
         print str(exc)
         return exits.ERROR

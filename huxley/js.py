@@ -43,6 +43,36 @@ def isPageChanging(timeout):
 return window._huxleyIsPageChanging(%s);
 """ % timeout
 
+listenForKeyEvents = """
+(function() {
+    var keyPresses = [];
+    window.addEventListener(
+        'keyup',
+        function (e) { 
+            keyPresses.push([
+                Date.now(), 
+                'keyup', [
+                    e.target.id, 
+                    e.target.className, 
+                    e.target.classList
+                ]
+            ]); 
+        },
+        true
+    );
+    window._getKeyEvents = function(timestamp) {
+        var result = [];
+        keyPresses.forEach(
+            function(press) {
+                if ( press[0] > timestamp ) {
+                    result.push(press)
+                }
+            })
+        return result;
+    }
+})();
+"""
+
 getHuxleyEvents = """
 (function() {
     var events = [];

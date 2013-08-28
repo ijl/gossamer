@@ -22,6 +22,7 @@ import json
 import jsonpickle
 import ConfigParser
 from selenium.common.exceptions import WebDriverException
+from urllib2 import URLError
 
 from selenium import webdriver
 
@@ -97,6 +98,10 @@ def get_driver(browser, local_webdriver=None, remote_webdriver=None):
         raise errors.InvalidBrowser(
             'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
         )
+    except URLError as exc:
+        raise errors.WebDriverRefusedConnection(
+            'We cannot connect to the WebDriver %s -- is it running?' % driver_url
+        )
     except WebDriverException as exc:
         if exc.msg.startswith('The path to the driver executable must be set'):
             raise errors.InvalidWebDriverConfiguration(
@@ -164,7 +169,7 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
             raise Exception # todo
     return True
 
-def make_tests(test_files, mode, cwd, **kwargs):
+def make_tests(test_files, mode, cwd, data_dir, **kwargs):
     """
     Given a list of huxley test files, a mode, working directory, and 
     options as found on the CLI interface, make tests for use by the 
@@ -213,8 +218,9 @@ def make_tests(test_files, mode, cwd, **kwargs):
             #     raise Exception # TODO
 
             default_filename = os.path.join(
-                os.path.dirname(file_name),
-                testname + '.huxley'
+                data_dir,
+                #os.path.dirname(file_name),
+                testname
             )
             filename = test_config.get(
                 'filename',

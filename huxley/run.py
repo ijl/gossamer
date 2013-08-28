@@ -159,7 +159,11 @@ def _begin_browsing(driver, settings):
         if settings.cookies is not None and len(settings.cookies) > 0:
             for cookie in settings.cookies:
                 driver.add_cookie(cookie)
-            driver.refresh() # selenium issue. this isn't right and annoyingly slow. TODO.
+            # selenium issue forces us to go to the domain in question 
+            # before setting a cookie for it -- so this assumes 
+            # we get only one domain in cookies. TODO.
+            # https://code.google.com/p/selenium/issues/detail?id=1953
+            driver.refresh()
     except WebDriverException as exc:
         if exc.msg.startswith("Error communicating with the remote browser"):
             raise errors.WebDriverWentAway(

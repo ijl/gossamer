@@ -58,10 +58,20 @@ class InvalidWebDriverConfiguration(Exception):
     WebDriver throws an exception while setting up.
     """
 
+class ImageNotFound(Exception):
+    """
+    Imagediff was passed a filename to an image that doesn't exist.
+    """
+
 class PlaybackTimeout(Exception):
     """
     We waited for the page to be unchanging (via watching mutations), 
     and the wait exceeded our timeout.
+    """
+
+class WebDriverRefusedConnection(Exception):
+    """
+    Cannot connect to the webdriver--is it running?
     """
 
 class WebDriverWentAway(Exception):
