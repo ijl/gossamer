@@ -13,7 +13,7 @@ import sys
 import plac # pylint: disable=F0401
 
 from huxley.main import dispatch
-from huxley.constant import modes, exits, \
+from huxley.constant import modes, exits, states, \
     DEFAULT_WEBDRIVER, DEFAULT_TESTFILE, \
     DEFAULT_DIFFCOLOR, DEFAULT_SCREENSIZE, \
     DEFAULT_BROWSER
@@ -87,7 +87,7 @@ from huxley.version import __version__
 
     version = plac.Annotation(
         'Get the current version',
-        'flag', 'V', 'version'
+        'flag', 'version'
     ),
 
     verbose = plac.Annotation(
@@ -177,10 +177,13 @@ def initialize(
         tests = util.make_tests(test_files, mode, cwd, data_dir, **options)
     except exc.DoNotOverwrite as exception:
         sys.stdout.write(str(exception))
+        sys.stdout.write('\n')
         sys.stdout.flush()
         return exits.ERROR
-    except (exc.RecordedRunDoesNotExist, exc.RecordedRunEmpty) as exception:
+    except (exc.RecordedRunDoesNotExist, exc.RecordedRunEmpty,
+        exc.CouldNotParseRecordedRun) as exception:
         sys.stdout.write(str(exception))
+        sys.stdout.write('\n')
         sys.stdout.flush()
         return exits.RECORDED_RUN_ERROR
 
@@ -196,13 +199,21 @@ def initialize(
         sys.stdout.write('\n')
         sys.stdout.flush()
         if mode == modes.PLAYBACK:
-            failed = sum(x is False for x in logs)
-            if failed > 0:
-                sys.stdout.write('FAILED (failed=%s)\n' % failed)
+            fails = sum(x is states.FAIL for _, x in logs.items())
+            errors = sum(x is states.ERROR for _, x in logs.items())
+            if fails > 0 or errors > 0:
+                msg = []
+                if fails > 0:
+                    msg.append('failed=%s' % fails)
+                if errors > 0:
+                    msg.append('errors=%s' % errors)
+                sys.stdout.write(
+                    'FAILED (%s)\n' % ', '.join(msg)
+                )
                 sys.stdout.flush()
                 return exits.FAILED
             else:
-                sys.stdout.write('PASSED (ok=%s)\n' % len(logs))
+                sys.stdout.write('OK (ok=%s)\n' % len(logs))
                 sys.stdout.flush()
                 return exits.OK
         return exits.OK
@@ -220,4 +231,9 @@ def main():
     Runs the argument parser and passes settings to
     :func:`huxley.main.dispatcher`.
     """
-    sys.exit(plac.call(initialize))
+    try:
+        sys.exit(plac.call(initialize))
+    except KeyboardInterrupt:
+        sys.stdout.write('\n')
+        sys.stdout.flush()
+        sys.exit(1)

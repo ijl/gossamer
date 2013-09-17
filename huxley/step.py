@@ -8,6 +8,7 @@ take a screenshot.
 # https://www.apache.org/licenses/LICENSE-2.0
 
 import os
+import time
 
 from huxley.constant import modes
 from huxley.exc import TestError
@@ -21,8 +22,13 @@ class TestStep(object): # pylint: disable=R0903
     """
 
     def __init__(self, offset_time):
-        self.delayer = None
         self.offset_time = offset_time
+
+    def delayer(self, driver): # pylint: disable=R0201,W0613
+        """
+        Do not execute until...
+        """
+        time.sleep(0.25)
 
     def execute(self, driver, settings):
         """
@@ -107,6 +113,12 @@ class Text(TestStep): # pylint: disable=R0903
         self.identifier_type = identifier_type
         self.value = value
 
+    def delayer(self, driver):
+        """
+        Do not execute until...
+        """
+        time.sleep(1)
+
     def execute(self, driver, settings):
         util.log.debug(
             "Text '%s' into element '%s' by %s",
@@ -130,6 +142,12 @@ class Screenshot(TestStep):
     def __init__(self, offset_time, index):
         super(Screenshot, self).__init__(offset_time)
         self.index = index
+
+    def delayer(self, driver):
+        """
+        Do not execute until...
+        """
+        time.sleep(1)
 
     def get_path(self, settings):
         """

@@ -13,8 +13,9 @@ import time
 
 from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
 
+from huxley.constant import states
 from huxley.step import Screenshot, Click, Key, Scroll, Text
-from huxley.data import Point
+from huxley.data import Point, Test
 from huxley import util, js, exc
 
 __all__ = ['playback', 'record', 'rerecord', ]
@@ -54,25 +55,6 @@ def navigate(driver, url):
         driver.get(href)
     else:
         driver.execute_script(get_post_js(href, postdata))
-
-
-class Test(object): # pylint: disable=R0903
-    """
-    Persists a test as `record.json`.
-    """
-
-    def __init__(self, browser, screensize, steps=None):
-        self.browser = browser
-        self.screensize = screensize
-        self.steps = steps or []
-
-    def __repr__(self):
-        return "%s: %s %s %r" % (
-            self.__class__.__name__,
-            self.browser,
-            self.screensize,
-            self.steps
-        )
 
 
 def rerecord(driver, settings, record): # pylint: disable=W0621
@@ -253,17 +235,16 @@ def playback(driver, settings, record): # pylint: disable=W0621
 
     time.sleep(2.5) # todo, initial load
 
-    passing = True
+    state = states.OK
+    err = None
     try:
         for step in record.steps:
 
-            time.sleep(0.25) # minimum, todo
-            if isinstance(step, (Screenshot, Text)):
-                time.sleep(0.75) # careful, todo
+            step.delayer(driver)
 
             timeout = 0
             while timeout < 150:
-                if not driver.execute_script(js.isPageChanging(100)): # milliseconds
+                if not driver.execute_script(js.isPageChanging(250)): # milliseconds
                     step.execute(driver, settings)
                     break
                 else:
@@ -274,11 +255,18 @@ def playback(driver, settings, record): # pylint: disable=W0621
                         % settings.name
                 )
 
-    except Exception as exception: # pylint: disable=W0703
-        passing = False # make passing bitmask for pass, fail, error?
-        util.log.error('%s', exception)
+    except Exception as err: # pylint: disable=W0703
+        state = states.ERROR
+        if err.msg and err.msg.startswith('element not visible'):
+            err = exc.ElementNotVisible(
+                "Element was not visible when expected during playback. If "
+                "your playback depended on a significant rerender having been "
+                "done, try recording a bit slower."
+            )
 
-    sys.stdout.write('ok.\n' if passing else 'FAIL.\n')
+    sys.stdout.write('%s\n' % str(state))
+    if err:
+        sys.stdout.write('%s\n' % str(err))
     sys.stdout.flush()
-    return passing
+    return state
 

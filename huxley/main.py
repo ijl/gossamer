@@ -10,7 +10,7 @@ Tests can be setup through the command-line interface via
 # Licensed under the Apache License, Version 2.0
 # https://www.apache.org/licenses/LICENSE-2.0
 
-from huxley.constant import modes
+from huxley.constant import modes, states
 from huxley import run, util, exc
 
 
@@ -29,7 +29,7 @@ def dispatch(driver, mode, tests, stop_on_error=False):
     try:
         for name, test in tests.iteritems():
             output = funcs[mode][0](driver, *funcs[mode][1](test))
-            if not output and not stop_on_error:
+            if not output or output in (states.FAIL, states.ERROR) and stop_on_error:
                 break
             run_log[name] = output
             if mode in (modes.RECORD, modes.RERECORD):

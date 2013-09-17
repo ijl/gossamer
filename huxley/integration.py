@@ -29,36 +29,24 @@ def run_huxleyfile(huxleyfile, data_dir, browser=None, local=None, remote=None):
 
     options = {'browser': browser, 'local': local, 'remote': remote}
 
-    tests = util.make_tests([huxleyfile], case.mode, cwd, data_dir, **options)
+    tests = util.make_tests([huxleyfile], modes.PLAYBACK, cwd, data_dir, **options)
+    for key, test in tests.items():
+        case.tests.append(run_nose(key, test, test.settings.browser, local, remote))
+    return case
+
+
+def run_nose(name, test, browser, local, remote):
+    """
+    Run a test for Nose.
+    """
     try:
-        case.driver = util.get_driver(browser, local, remote)
-        for key, test in tests.items():
-            case.tests.append(dispatch(case.driver, case.mode, {key: test, }))
-        return case
+        driver = util.get_driver(browser, local, remote)
+        dispatch(driver, modes.PLAYBACK, {name: test, })
     finally:
-        case.driver.quit() # eeek. why wasn't tearDown doing it?
+        driver.quit()
 
 class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
     """
     unittest case.
     """
-    mode = modes.PLAYBACK
     tests = []
-
-
-# def unittest_main(module='__main__'):
-#     """
-#     unittest integration.
-
-#     When running in a continuous test runner you may want the
-#     tests to continue to fail (rather than re-recording new screen
-#     shots) to indicate a commit that changed a screen shot but did
-#     not rerecord.
-#     and automatically back off the sleep factor.
-
-#     The default behavior is to play back the test and save new screen shots
-#     if they change.
-#     """
-#     # sys.argv[0] is Huxleyfile
-#     HuxleyTestCase.huxleyfile = sys.argv[0]
-#     unittest.main(module)

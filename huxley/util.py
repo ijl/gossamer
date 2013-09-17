@@ -19,7 +19,7 @@ from selenium import webdriver  # pylint: disable=F0401
 from huxley import exc
 
 from huxley.constant import modes, exits, \
-    DEFAULT_DIFFCOLOR, DEFAULTS, REMOTE_WEBDRIVER_URL
+    DEFAULT_DIFFCOLOR, REMOTE_WEBDRIVER_URL
 
 def logger(name, level=None):
     """
@@ -50,7 +50,7 @@ CAPABILITIES = {
 
 def read_recorded_run(filename):
     """
-    Load a serialized run. TODO in versioning, validation, etc.
+    Load a serialized run.
     """
     try:
         if os.path.getsize(filename) <= 0:
@@ -60,10 +60,11 @@ def read_recorded_run(filename):
     try:
         with open(filename, 'r') as fp:
             recorded_run = jsonpickle.decode(fp.read())
-        # todo validate
+        if recorded_run.version != 1:
+            raise NotImplementedError()
         return recorded_run
     except ValueError: # couldn't parse
-        raise # todo error
+        raise exc.CouldNotParseRecordedRun('Could not parse %s' % filename)
 
 
 def write_recorded_run(filename, output):
@@ -166,6 +167,9 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
                 for each in os.listdir(filename):
                     if each.split('.')[-1] in ('png', 'json'):
                         os.remove(os.path.join(filename, each))
+                for each in os.listdir(os.path.join(filename, 'last')):
+                    if each.split('.')[-1] == 'png':
+                        os.remove(os.path.join(filename, 'last', each))
     else:
         if mode == modes.RECORD:
             os.makedirs(filename)
@@ -175,7 +179,7 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
             raise exc.EmptyPath('%s does not exist\n' % filename)
     return True
 
-def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R0914
+def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R0914,R0912
     """
     Given a list of huxley test files, a mode, working directory, and
     options as found on the CLI interface, make tests for use by the
@@ -195,7 +199,6 @@ def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R09
     for file_name in test_files:
 
         config = ConfigParser.SafeConfigParser(
-            defaults=DEFAULTS,
             allow_no_value=True
         )
         config.read([file_name])
@@ -205,7 +208,7 @@ def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R09
             if names and (testname not in names):
                 continue
             if testname in tests:
-                print 'Duplicate test name %s' % testname
+                log.debug('Duplicate test name %s', testname)
                 return exits.ERROR
 
             test_config = dict(config.items(testname))
@@ -222,8 +225,16 @@ def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R09
             else:
                 cookies = None
 
-            # if test_config.get('browser', None) != kwargs['browser']:
-            #     raise Exception # TODO
+            browser = test_config.get('browser', None)
+            if browser:
+                if kwargs['browser'] != browser:
+                    raise exc.DifferentBrowser(
+                        "Different browser given in command-line than "
+                        "is on recorded run. Screenshots may not match, "
+                        "so aborting. Please re-record."
+                    )
+            if kwargs['browser']:
+                browser = kwargs['browser']
 
             default_filename = os.path.join(
                 data_dir,
@@ -256,7 +267,7 @@ def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R09
                 url=url,
                 mode=mode,
                 path=filename,
-                browser=kwargs['browser'],
+                browser=browser,
                 screensize=screensize,
                 postdata=postdata or test_config.get('postdata'),
                 diffcolor=diffcolor,
