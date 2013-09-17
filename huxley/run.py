@@ -23,30 +23,10 @@ import time
 
 from selenium.common.exceptions import WebDriverException
 
-# from huxley.consts import modes
-from huxley.steps import Screenshot, Click, Key, Scroll
+from huxley.steps import Screenshot, Click, Key, Scroll, Text, Point
 from huxley import util, js, errors
 
 __all__ = ['playback', 'record', 'rerecord', ]
-
-class Point(object): # pylint: disable=R0903
-    """
-    Contains validated x, y coordinates for screen position.
-    """
-
-    def __init__(self, x, y):
-        """
-        Stores x and y coordinates. They cannot be negative.
-        """
-        if x < 0 or y < 0:
-            raise ValueError(
-                'Coordinates [%s, %s] cannot be negative' % (x, y)
-            )
-        self.x = x
-        self.y = y
-
-    def __repr__(self):
-        return ''.join(('[', str(self.x), ', ', str(self.y), ']'))
 
 
 def get_post_js(url, postdata):
@@ -87,7 +67,7 @@ def navigate(driver, url):
 
 class Test(object): # pylint: disable=R0903
     """
-    Holds steps and screensize... is serialized as record.json. 
+    Holds steps and screensize... is serialized as record.json.
 
     TODO: why only those two attrs?
     """
@@ -111,7 +91,7 @@ class TestRun(object): # pylint: disable=R0903
     Specific instance of a test run. Not sure of use now?
     """
 
-    def __init__(self, 
+    def __init__(self,
             test, path, url, driver, mode, diffcolor, save_diff
         ): # pylint: disable=R0913
         if not isinstance(test, Test):
@@ -129,7 +109,7 @@ def rerecord(driver, settings, record): # pylint: disable=W0621
     """
     Rerecord a given test
     """
-    return playback(settings, driver, record)
+    return playback(driver, settings, record)
 
 
 def _process_steps(steps, events, start_time):
@@ -139,14 +119,58 @@ def _process_steps(steps, events, start_time):
     """
     for (timestamp, action, params) in events:
         if action == 'click':
-            steps.append(Click(timestamp - start_time, Point(*params)))
+            steps.append(
+                Click(timestamp - start_time, Point(*params))
+            )
         elif action == 'keyup':
-            steps.append(Key(timestamp - start_time, key=params[0], shift=params[1], eid=params[2], ecn=params[3], ecl=params[4]))
+            util.log.debug('keyup: %r', params)
+            steps.append(
+                Key(
+                    timestamp - start_time,
+                    key=params[0], shift=params[1],
+                    eid=params[2][0], eid_val=params[2][1],
+                    ecn=params[3][0], ecn_val=params[3][1],
+                    ecl=params[4][0], ecl_val=params[4][1]
+                )
+            )
         elif action == 'scroll':
-            steps.append(Scroll(timestamp - start_time, Point(*params)))
+            steps.append(
+                Scroll(timestamp - start_time, Point(*params))
+            )
 
-    # TODO, steps: truncate events after last screenshot
-    return sorted(steps, key=operator.attrgetter('offset_time'))
+    # iterate through steps, and process 'raw' steps like Key into Text
+    last_screenshot_time = None
+    merges = []
+    length = len(steps) - 1
+    for i, step in enumerate(steps):
+        if isinstance(step, Screenshot):
+            last_screenshot_time = step.offset_time
+        if isinstance(step, Key):
+            if i != length and step.key != '\t' and isinstance(steps[i+1], Key):
+                continue
+            else:
+                # tab keyup carries the element of the new field, so go back one
+                step = step if step.key != '\t' else steps[i-1]
+                merges.append(
+                    Text(
+                        offset_time=step.offset_time,
+                        value=step.value,
+                        identifier_type=step.identifier_type,
+                        identifier=step.identifier
+                    )
+                )
+        # not merging scrolls; might've been done for rendering side effects
+
+    def _filter_steps(step):
+        return step.offset_time <= last_screenshot_time and \
+            step.playback is True
+
+    steps = sorted(
+        filter(_filter_steps, steps + merges),
+        key=operator.attrgetter('offset_time')
+    )
+    util.log.debug('filtered steps: %r', steps)
+    return steps
 
 def _begin_browsing(driver, settings):
     """
@@ -159,10 +183,11 @@ def _begin_browsing(driver, settings):
         if settings.cookies is not None and len(settings.cookies) > 0:
             for cookie in settings.cookies:
                 driver.add_cookie(cookie)
-            # selenium issue forces us to go to the domain in question 
-            # before setting a cookie for it -- so this assumes 
-            # we get only one domain in cookies. TODO.
+            # selenium issue forces us to go to the domain in question
+            # before setting a cookie for it -- so this assumes
+            # we get only one domain in cookies.
             # https://code.google.com/p/selenium/issues/detail?id=1953
+            # todo: validate len(cookie) == 1 on import
             driver.refresh()
     except WebDriverException as exc:
         if exc.msg.startswith("Error communicating with the remote browser"):
@@ -193,8 +218,8 @@ def record(driver, settings):
         sys.stdout.write('Taking screenshot ... ')
         sys.stdout.flush()
         screenshot_step = Screenshot(
-            driver.execute_script(js.now) - start_time, 
-            len(steps)
+            driver.execute_script(js.now) - start_time,
+            len(steps) + 1
         )
         driver.save_screenshot(screenshot_step.get_path(settings))
         steps.append(screenshot_step)
@@ -211,7 +236,6 @@ def record(driver, settings):
     # now capture the events
     try:
         events = driver.execute_script('return window._getHuxleyEvents();')
-        print events
     except:
         # todo fix...
         raise errors.TestError(
@@ -223,7 +247,7 @@ def record(driver, settings):
                                     'A script on this page may be busy, '
                                     'or it may have stopped responding.'):
         raise errors.TestError('Event-capturing script was unresponsive.')
-    
+
     record = Test( # pylint: disable=W0621
         browser = settings.browser,
         screensize = settings.screensize,
@@ -236,7 +260,7 @@ def record(driver, settings):
         "ensure they \nare pixel-perfect when running automated. Press "
         "enter to start.", testname=settings.name
     )
-    rerecord(settings, driver, record)
+    rerecord(driver, settings, record)
 
     return record
 
@@ -254,14 +278,14 @@ def playback(driver, settings, record): # pylint: disable=W0621
     _begin_browsing(driver, settings)
     driver.execute_script(js.pageChangingObserver)
 
-    time.sleep(1) # todo, initial load
+    time.sleep(2.5) # todo, initial load
 
     passing = True
     try:
         for step in record.steps:
 
             time.sleep(0.25) # minimum, todo
-            if isinstance(step, Screenshot):
+            if isinstance(step, (Screenshot, Text)):
                 time.sleep(0.75) # careful, todo
 
             timeout = 0
@@ -279,8 +303,7 @@ def playback(driver, settings, record): # pylint: disable=W0621
 
     except Exception as exc:
         passing = False
-        # todo
-        raise
+        util.log.error('%s', exc) # TODO
 
     sys.stdout.write('ok.\n' if passing else 'FAIL.\n')
     sys.stdout.flush()

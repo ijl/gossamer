@@ -31,10 +31,10 @@ from huxley.main import dispatch
 from huxley.version import __version__
 
 
-class TestRun(object):  # pylint: disable=R0903 
+class TestRun(object):  # pylint: disable=R0903
     # check this name...
     """
-    Object to be passed into dispatch... containing all information 
+    Object to be passed into dispatch... containing all information
     to run (and repeat, if persisted) a test.
     """
 
@@ -44,8 +44,8 @@ class TestRun(object):  # pylint: disable=R0903
 
     def __repr__(self):
         return "%s: %r, %r" % (
-            self.__class__.__name__, 
-            self.settings, 
+            self.__class__.__name__,
+            self.settings,
             self.recorded_run
         )
 
@@ -55,9 +55,9 @@ class Settings(object): # pylint: disable=R0903,R0902
     Hold validated settings for a specific test run.
     """
 
-    def __init__(self, 
+    def __init__(self,
             name, url, mode, path, browser,
-            screensize, postdata, 
+            screensize, postdata,
             diffcolor, save_diff, cookies=None, desc=None
         ): # pylint: disable=R0913
         self.name = name
@@ -101,7 +101,7 @@ class Settings(object): # pylint: disable=R0903,R0902
     ),
     rerecord = plac.Annotation(
         'Re-run the test but take new screenshots',
-        'flag', 'rr' 
+        'flag', 'rr'
     ),
     # playback_only = plac.Annotation(
     #     'Don\'t write new screenshots',
@@ -131,7 +131,7 @@ class Settings(object): # pylint: disable=R0903,R0902
     ),
     diffcolor = plac.Annotation(
         'Diff color for errors in RGB (i.e. 0,255,0)',
-        'option', 'c', str,
+        'option', 'd', str,
         metavar=DEFAULT_DIFFCOLOR
     ),
 
@@ -157,10 +157,13 @@ class Settings(object): # pylint: disable=R0903,R0902
 
     version = plac.Annotation(
         'Get the current version',
-        'flag', 'version'
-    )
+        'flag', 'V', 'version'
+    ),
 
-    # todo: verbose?
+    verbose = plac.Annotation(
+        'Verbosity, with -v as logging.DEBUG',
+        'flag', 'v', 'verbose'
+    )
 )
 
 # TODO: when playing back, test if browsers match
@@ -180,22 +183,25 @@ def initialize(
         save_diff=False,
         overwrite=False,
         data_dir=None,
-        version=False
+        version=False,
+        verbose=False
     ): # pylint: disable=R0913,W0613
-        # autorerecord=False,
-        # playback_only=False,
     """
-    Given arguments from the `plac` argument parser, determine the mode and 
-    test files so tests can be constructed, then pass tests to the 
+    Given arguments from the `plac` argument parser, determine the mode and
+    test files so tests can be constructed, then pass tests to the
     dispatcher.
     """
 
     if version:
-        print 'Huxley ' + __version__
+        sys.stdout.write('Huxley %s\n' % __version__)
+        sys.stdout.flush()
         return exits.OK
 
     sys.stdout.write('Initializing huxley and opening WebDriver...\n')
     sys.stdout.flush()
+
+    if verbose:
+        util.log = util.logger(__name__, 'DEBUG')
 
     names = names.split(',') if names else None
 
@@ -205,7 +211,8 @@ def initialize(
         for name in glob.glob(pattern):
             test_files.append(os.path.join(cwd, name))
     if len(test_files) == 0:
-        print 'No Huxleyfile found'
+        sys.stdout.write('No Huxleyfile found')
+        sys.stdout.flush()
         return exits.ERROR
 
     # data_dir
@@ -217,7 +224,8 @@ def initialize(
 
     # mode
     if record and rerecord:
-        print 'Cannot specify both -r and -rr'
+        sys.stdout.write('Cannot specify both -r and -rr')
+        sys.stdout.flush()
         return exits.ARGUMENT_ERROR
     if record:
         mode = modes.RECORD
@@ -234,28 +242,40 @@ def initialize(
         key: val for key, val in \
         [(each, locals()[each]) for each in attrs]
     }
-        
+
     # make tests using the test_files and mode we've resolved to
     try:
         tests = util.make_tests(test_files, mode, cwd, data_dir, **options)
     except errors.DoNotOverwrite as exc:
-        print str(exc)
+        sys.stdout.write(str(exc))
+        sys.stdout.flush()
         return exits.ERROR
     except (errors.RecordedRunDoesNotExist, errors.RecordedRunEmpty) as exc:
-        print str(exc)
-        return exits.RECORDED_RUN_ERROR 
+        sys.stdout.write(str(exc))
+        sys.stdout.flush()
+        return exits.RECORDED_RUN_ERROR
 
     # driver
     try:
         driver = util.get_driver((browser or DEFAULT_BROWSER), local, remote)
-
         # run the tests
         try:
             logs = dispatch(driver, mode, tests)
         except errors.NoScreenshotsRecorded as exc:
-            print str(exc)
+            sys.stdout.write(str(exc))
+            sys.stdout.flush()
             return exits.ERROR
         sys.stdout.write('\n')
+        sys.stdout.flush()
+        if mode == modes.PLAYBACK:
+            failed = sum(x is False for x in logs)
+            if failed > 0:
+                sys.stdout.write('FAILED (failed=%s)\n' % failed)
+                sys.stdout.flush()
+            else:
+                sys.stdout.write('PASSED (ok=%s)\n' % len(logs))
+                sys.stdout.flush()
+                exits.OK
         return exits.OK
     finally:
         try:
@@ -267,7 +287,7 @@ def main():
     """
     Defined as the `huxley` command in setup.py.
 
-    Runs the argument parser and passes settings to 
+    Runs the argument parser and passes settings to
     :func:`huxley.main.dispatcher`.
     """
     sys.exit(plac.call(initialize))

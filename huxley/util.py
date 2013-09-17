@@ -31,6 +31,18 @@ from huxley import errors
 from huxley.consts import modes, exits, \
     DEFAULT_DIFFCOLOR, DEFAULTS, REMOTE_WEBDRIVER_URL
 
+def logger(name, level=None):
+    """
+    Create logger with appropriate level.
+    """
+    import logging
+    log = logging.getLogger(name)
+    log.addHandler(logging.StreamHandler())
+    log.setLevel(getattr(logging, level) if level else logging.INFO)
+    return log
+
+# level can be overriden to DEBUG in CLI with -v
+log = logger(__name__, 'INFO')
 
 DRIVERS = {
     'firefox': webdriver.Firefox,
@@ -85,7 +97,7 @@ def get_driver(browser, local_webdriver=None, remote_webdriver=None):
     """
     Get a webdriver. The caller is responsible for closing the driver.
 
-    Browser is required. Local and remote are optional, with remote 
+    Browser is required. Local and remote are optional, with remote
     taking precedence.
     """
     if local_webdriver and not remote_webdriver:
@@ -113,11 +125,10 @@ def get_driver(browser, local_webdriver=None, remote_webdriver=None):
 
 def prompt(display, options=None, testname=None):
     """
-    Given text as `display` and optionally `options` as an 
-    iterable containing acceptable input, returns a boolean 
+    Given text as `display` and optionally `options` as an
+    iterable containing acceptable input, returns a boolean
     of whether the prompt was met.
     """
-    print display
     inp = raw_input('huxley%s >>> ' % (':'+testname if testname else ''))
     if options:
         if inp in options:
@@ -144,13 +155,14 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
     """
     TODO
     """
+    log.debug(filename)
     if os.path.exists(filename):
         if mode == modes.RECORD: # todo weirdness with rerecord
             if os.path.getsize(filename) > 0:
                 if not overwrite and not prompt(
                     '\n%s already exists--clear existing '
                     'screenshots and overwrite test? [Y/n] ' \
-                        % testname, 
+                        % testname,
                     ('Y', 'y')
                     ):
                     raise errors.DoNotOverwrite(
@@ -163,6 +175,7 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
     else:
         if mode == modes.RECORD:
             os.makedirs(filename)
+            os.makedirs(os.path.join(filename, 'last'))
             # todo exc
         else:
             print '%s does not exist' % filename
@@ -171,14 +184,17 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
 
 def make_tests(test_files, mode, cwd, data_dir, **kwargs):
     """
-    Given a list of huxley test files, a mode, working directory, and 
-    options as found on the CLI interface, make tests for use by the 
+    Given a list of huxley test files, a mode, working directory, and
+    options as found on the CLI interface, make tests for use by the
     dispatcher.
     """
     from huxley.cmdline import Settings, TestRun # TODO move classes
 
     postdata = _postdata(kwargs.pop('postdata'))
-    diffcolor = tuple(int(x) for x in (kwargs.pop('diffcolor') or DEFAULT_DIFFCOLOR).split(','))
+    diffcolor = tuple(
+        int(x) for x in
+            (kwargs.pop('diffcolor') or DEFAULT_DIFFCOLOR).split(',')
+    )
 
     tests = {}
     names = kwargs.pop('names')
@@ -219,7 +235,6 @@ def make_tests(test_files, mode, cwd, data_dir, **kwargs):
 
             default_filename = os.path.join(
                 data_dir,
-                #os.path.dirname(file_name),
                 testname
             )
             filename = test_config.get(
@@ -237,10 +252,11 @@ def make_tests(test_files, mode, cwd, data_dir, **kwargs):
             else:
                 recorded_run = None
 
-            screensize = tuple(int(x) for x in (kwargs.pop('screensize', None) or test_config.get(
-                'screensize',
-                '1024x768'
-            )).split('x'))
+            screensize = tuple(
+                int(x) for x in
+                    (kwargs.pop('screensize', None) or \
+                    test_config.get('screensize', '1024x768')
+            ).split('x'))
 
             settings = Settings(
                 name=testname,
@@ -257,17 +273,6 @@ def make_tests(test_files, mode, cwd, data_dir, **kwargs):
             )
 
             tests[testname] = TestRun(settings, recorded_run)
-            # print tests[testname]
 
     return tests
 
-
-def logger(name):
-    """
-    TODO
-    """
-    import logging
-    log = logging.getLogger(name)
-    log.addHandler(logging.StreamHandler())
-    log.setLevel(logging.DEBUG)
-    return log

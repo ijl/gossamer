@@ -26,7 +26,7 @@ from huxley import util
 from huxley import errors
 
 
-def dispatch(driver, mode, tests):
+def dispatch(driver, mode, tests, stop_on_error=False):
     """
     Given driver and a list of tests, dispatch the appropriate runs and 
     return an exit code. For consumption by the CLI and unittest 
@@ -41,6 +41,8 @@ def dispatch(driver, mode, tests):
     try:
         for name, test in tests.iteritems():
             output = funcs[mode][0](driver, *funcs[mode][1](test))
+            if not output and not stop_on_error:
+                break
             run_log[name] = output
             if mode in (modes.RECORD, modes.RERECORD):
                 util.write_recorded_run(test.settings.path, output)

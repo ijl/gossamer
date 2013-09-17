@@ -20,7 +20,7 @@ now = """
 return Date.now();
 """
 
-# todo work around IE < 11 not supporting MutationObserver.. 
+# todo work around IE < 11 not supporting MutationObserver..
 # back to DOM Mutation Events?
 pageChangingObserver = """
 (function() {
@@ -48,15 +48,15 @@ listenForKeyEvents = """
     var keyPresses = [];
     window.addEventListener(
         'keyup',
-        function (e) { 
+        function (e) {
             keyPresses.push([
-                Date.now(), 
+                Date.now(),
                 'keyup', [
-                    e.target.id, 
-                    e.target.className, 
+                    e.target.id,
+                    e.target.className,
                     e.target.classList
                 ]
-            ]); 
+            ]);
         },
         true
     );
@@ -84,17 +84,23 @@ getHuxleyEvents = """
     );
     window.addEventListener(
         'keyup',
-        function (e) { 
+        function (e) {
+            var idVal = e.target.id ?
+                document.querySelector('#'+e.target.id).value : null
+            var classNameVal = e.target.className ?
+                document.querySelector('.'+e.target.className).value : null;
+            var classListVal = e.target.classList ?
+                document.querySelector('.'+e.target.classList.toString()).value : null;
             events.push([
-                Date.now(), 
+                Date.now(),
                 'keyup', [
-                    String.fromCharCode(e.keyCode), 
+                    String.fromCharCode(e.keyCode),
                     e.shiftKey,
-                    e.target.id, 
-                    e.target.className, 
-                    e.target.classList
+                    [e.target.id, idVal],
+                    [e.target.className, classNameVal],
+                    [e.target.classList, classListVal]
                 ]
-            ]); 
+            ]);
         },
         true
     );
