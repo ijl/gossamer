@@ -29,6 +29,9 @@ pageChangingObserver = """
 """
 
 def isPageChanging(timeout):
+    """
+    Has page changed within the given `timeout`, in milliseconds?
+    """
     return """
 return window._huxleyIsPageChanging(%s);
 """ % timeout

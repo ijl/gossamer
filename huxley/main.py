@@ -10,10 +10,10 @@ Tests can be setup through the command-line interface via
 # Licensed under the Apache License, Version 2.0
 # https://www.apache.org/licenses/LICENSE-2.0
 
-from huxley.consts import modes
+from huxley.constant import modes
 from huxley import run
 from huxley import util
-from huxley import errors
+from huxley import exc
 
 
 def dispatch(driver, mode, tests, stop_on_error=False):
@@ -36,6 +36,6 @@ def dispatch(driver, mode, tests, stop_on_error=False):
             run_log[name] = output
             if mode in (modes.RECORD, modes.RERECORD):
                 util.write_recorded_run(test.settings.path, output)
-    except errors.NoScreenshotsRecorded:
+    except exc.NoScreenshotsRecorded:
         raise
     return run_log

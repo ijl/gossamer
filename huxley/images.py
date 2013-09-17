@@ -17,27 +17,16 @@ except ImportError: # pragma: no cover
     import Image
     import ImageChops
 
-from huxley.errors import TestError
-from huxley import util
+from huxley import util, exc
 
-
-def _bad_images_identical(path1, path2):
-    im1 = Image.open(path1)
-    im2 = Image.open(path2)
-    diff = ImageChops.difference(im1, im2).getbbox()
-    util.log.debug('images_identical diff: %s,', diff)
-    try:
-        return diff is None
-    except ValueError:
-        raise errors.ImageNotFound(
-            'Cannot find one of: %s, %s' % (path1, path2)
-        )
 
 def images_identical(path1, path2):
+    """
+    Hacky test of images being identical. PIL can show incorrect diffs.
+    """
     im1 = Image.open(path1)
     im2 = Image.open(path2)
     rmsdiff = _rmsdiff_2011(im1, im2)
-    util.log.debug('rmsdiff: %s', rmsdiff)
     if rmsdiff <= 573:
         return True
     else:
@@ -49,29 +38,23 @@ def image_diff(path1, path2, outpath, diffcolor):
     Generate a diff image on a screenshot which has failed
     :func:`.images_identical`.
     """
-    util.log.debug('path1: %s', path1)
-    util.log.debug('path2: %s', path2)
     im1 = Image.open(path1)
     im2 = Image.open(path2)
 
-    util.log.debug('im1: %s, %r', type(im1), im1)
-    #util.log.debug('dir: %r', dir(im1))
-
     rmsdiff = _rmsdiff_2011(im1, im2)
-
     util.log.debug('rmsdiff: %s', rmsdiff)
-    # rmsdiff = 0 if rmsdiff < 1000 else rmsdiff
+    # rmsdiff = 0 if rmsdiff < 573 else rmsdiff
 
     pix1 = im1.load()
     pix2 = im2.load()
 
     if im1.mode != im2.mode:
-        raise TestError(
+        raise exc.TestError(
             'Different pixel modes between %r and %r' % \
             (path1, path2)
         )
     if im1.size != im2.size:
-        raise TestError(
+        raise exc.TestError(
             'Different dimensions between %r (%r) and %r (%r)' % \
             (path1, im1.size, path2, im2.size)
         )
@@ -87,7 +70,7 @@ def image_diff(path1, path2, outpath, diffcolor):
     elif mode == 'RGBA':
         value = diffcolor + (255,)
     elif mode == 'P':
-        raise NotImplementedError('TODO: look up nearest palette color')
+        raise NotImplementedError('Need to look up nearest palette color')
     else:
         raise NotImplementedError('Unexpected PNG mode')
 
@@ -109,4 +92,5 @@ def _rmsdiff_2011(im1, im2):
     sq = (value * (idx ** 2) for idx, value in enumerate(h))
     sum_of_squares = sum(sq)
     rms = math.sqrt(sum_of_squares / float(im1.size[0] * im1.size[1]))
+    util.log.debug('rmsdiff: %s', rms)
     return rms

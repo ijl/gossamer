@@ -10,66 +10,15 @@ import glob
 import os
 import sys
 
-import plac
+import plac # pylint: disable=F0401
 
-from huxley.consts import modes, exits, \
+from huxley.constant import modes, exits, \
     DEFAULT_WEBDRIVER, DEFAULT_TESTFILE, \
     DEFAULT_DIFFCOLOR, DEFAULT_SCREENSIZE, \
     DEFAULT_BROWSER
-from huxley import util, errors
+from huxley import util, exc
 from huxley.main import dispatch
 from huxley.version import __version__
-
-
-class TestRun(object):  # pylint: disable=R0903
-    # check this name...
-    """
-    Object to be passed into dispatch... containing all information
-    to run (and repeat, if persisted) a test.
-    """
-
-    def __init__(self, settings, recorded_run=None):
-        self.settings = settings
-        self.recorded_run = recorded_run
-
-    def __repr__(self):
-        return "%s: %r, %r" % (
-            self.__class__.__name__,
-            self.settings,
-            self.recorded_run
-        )
-
-
-class Settings(object): # pylint: disable=R0903,R0902
-    """
-    Hold validated settings for a specific test run.
-    """
-
-    def __init__(self,
-            name, url, mode, path, browser,
-            screensize, postdata,
-            diffcolor, save_diff, cookies=None, desc=None
-        ): # pylint: disable=R0913
-        self.name = name
-        self.url = url
-        self.mode = mode
-        self.path = path
-        self.browser = browser
-        self.screensize = screensize
-        self.postdata = postdata
-        self.diffcolor = diffcolor
-        self.save_diff = save_diff
-        self.desc = desc
-        self.cookies = cookies
-
-    def navigate(self):
-        """
-        Return data in form expected by :func:`huxley.run.navigate`.
-        """
-        return (self.url, self.postdata)
-
-    def __repr__(self):
-        return '%s: %r' % (self.__class__.__name__, self.__dict__)
 
 
 @plac.annotations(
@@ -93,10 +42,6 @@ class Settings(object): # pylint: disable=R0903,R0902
         'Re-run the test but take new screenshots',
         'flag', 'rr'
     ),
-    # playback_only = plac.Annotation(
-    #     'Don\'t write new screenshots',
-    #     'flag', 'p'
-    # ),
 
     local = plac.Annotation(
         'Local WebDriver URL to use',
@@ -121,7 +66,7 @@ class Settings(object): # pylint: disable=R0903,R0902
     ),
     diffcolor = plac.Annotation(
         'Diff color for errors in RGB (i.e. 0,255,0)',
-        'option', 'd', str,
+        'option', 'p', str,
         metavar=DEFAULT_DIFFCOLOR
     ),
 
@@ -129,11 +74,6 @@ class Settings(object): # pylint: disable=R0903,R0902
         'Save information about failures as last.png and diff.png',
         'flag', 'e'
     ),
-
-    # autorerecord = plac.Annotation(
-    #     'Playback test and automatically rerecord if it fails',
-    #     'flag', 'a' # todo
-    # ),
 
     overwrite = plac.Annotation(
         'Overwrite existing tests without asking',
@@ -153,11 +93,9 @@ class Settings(object): # pylint: disable=R0903,R0902
     verbose = plac.Annotation(
         'Verbosity, with -v as logging.DEBUG',
         'flag', 'v', 'verbose'
-    )
+    ) # pylint: disable=R0915,R0912,R0911,R0914
 )
 
-# TODO: when playing back, test if browsers match
-#       firefox and chrome do screenshot dimensions differently, for example
 
 def initialize(
         names=None,
@@ -236,12 +174,12 @@ def initialize(
     # make tests using the test_files and mode we've resolved to
     try:
         tests = util.make_tests(test_files, mode, cwd, data_dir, **options)
-    except errors.DoNotOverwrite as exc:
-        sys.stdout.write(str(exc))
+    except exc.DoNotOverwrite as exception:
+        sys.stdout.write(str(exception))
         sys.stdout.flush()
         return exits.ERROR
-    except (errors.RecordedRunDoesNotExist, errors.RecordedRunEmpty) as exc:
-        sys.stdout.write(str(exc))
+    except (exc.RecordedRunDoesNotExist, exc.RecordedRunEmpty) as exception:
+        sys.stdout.write(str(exception))
         sys.stdout.flush()
         return exits.RECORDED_RUN_ERROR
 
@@ -251,8 +189,8 @@ def initialize(
         # run the tests
         try:
             logs = dispatch(driver, mode, tests)
-        except errors.NoScreenshotsRecorded as exc:
-            sys.stdout.write(str(exc))
+        except exc.NoScreenshotsRecorded as exception:
+            sys.stdout.write(str(exception))
             sys.stdout.flush()
             return exits.ERROR
         sys.stdout.write('\n')
@@ -262,10 +200,11 @@ def initialize(
             if failed > 0:
                 sys.stdout.write('FAILED (failed=%s)\n' % failed)
                 sys.stdout.flush()
+                return exits.FAILED
             else:
                 sys.stdout.write('PASSED (ok=%s)\n' % len(logs))
                 sys.stdout.flush()
-                exits.OK
+                return exits.OK
         return exits.OK
     finally:
         try:

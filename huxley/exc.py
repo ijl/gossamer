@@ -8,7 +8,7 @@ Exceptions
 
 class TestError(RuntimeError):
     """
-    TODO: replace
+    Generic.
     """
     pass
 

@@ -11,7 +11,7 @@ import unittest
 import sys
 
 from huxley.main import dispatch
-from huxley.consts import modes, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL, \
+from huxley.constant import modes, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL, \
     DEFAULT_BROWSER
 from huxley import util
 
@@ -39,6 +39,7 @@ class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
         cwd = os.getcwd() # os.abspath(filename)?
 
         # TODO data_dir
+        data_dir = None
 
         try:
             driver = util.get_driver(browser)

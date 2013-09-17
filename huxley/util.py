@@ -9,16 +9,16 @@ Utilities.
 import os
 import sys
 import json
-import jsonpickle
+import jsonpickle # pylint: disable=F0401
 import ConfigParser
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
 from urllib2 import URLError
 
-from selenium import webdriver
+from selenium import webdriver  # pylint: disable=F0401
 
-from huxley import errors
+from huxley import exc
 
-from huxley.consts import modes, exits, \
+from huxley.constant import modes, exits, \
     DEFAULT_DIFFCOLOR, DEFAULTS, REMOTE_WEBDRIVER_URL
 
 def logger(name, level=None):
@@ -26,10 +26,10 @@ def logger(name, level=None):
     Create logger with appropriate level.
     """
     import logging
-    log = logging.getLogger(name)
-    log.addHandler(logging.StreamHandler())
-    log.setLevel(getattr(logging, level) if level else logging.INFO)
-    return log
+    ret = logging.getLogger(name)
+    ret.addHandler(logging.StreamHandler())
+    ret.setLevel(getattr(logging, level) if level else logging.INFO)
+    return ret
 
 # level can be overriden to DEBUG in CLI with -v
 log = logger(__name__, 'INFO')
@@ -54,9 +54,9 @@ def read_recorded_run(filename):
     """
     try:
         if os.path.getsize(filename) <= 0:
-            raise errors.RecordedRunEmpty('%s is empty' % filename)
+            raise exc.RecordedRunEmpty('%s is empty' % filename)
     except OSError:
-        raise errors.RecordedRunDoesNotExist('%s does not exist' % filename)
+        raise exc.RecordedRunDoesNotExist('%s does not exist' % filename)
     try:
         with open(filename, 'r') as fp:
             recorded_run = jsonpickle.decode(fp.read())
@@ -77,8 +77,8 @@ def write_recorded_run(filename, output):
                     output
                 )
             ) # todo version the recorded run, and validate it
-    except Exception as exc: # todo how can this fail
-        raise exc
+    except Exception as exception: # todo how can this fail
+        raise exception
     return True
 
 
@@ -97,17 +97,17 @@ def get_driver(browser, local_webdriver=None, remote_webdriver=None):
     try:
         driver = webdriver.Remote(driver_url, CAPABILITIES[browser])
     except KeyError:
-        raise errors.InvalidBrowser(
+        raise exc.InvalidBrowser(
             'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
         )
-    except URLError as exc:
-        raise errors.WebDriverRefusedConnection(
+    except URLError as exception:
+        raise exc.WebDriverRefusedConnection(
             'We cannot connect to the WebDriver %s -- is it running?' % driver_url
         )
-    except WebDriverException as exc:
-        if exc.msg.startswith('The path to the driver executable must be set'):
-            raise errors.InvalidWebDriverConfiguration(
-                'WebDriver cannot locate the driver for %s: %s' % (browser, exc.msg)
+    except WebDriverException as exception:
+        if exception.msg.startswith('The path to the driver executable must be set'):
+            raise exc.InvalidWebDriverConfiguration(
+                'WebDriver cannot locate the driver for %s: %s' % (browser, exception.msg)
             )
         raise
     return driver
@@ -119,6 +119,9 @@ def prompt(display, options=None, testname=None):
     iterable containing acceptable input, returns a boolean
     of whether the prompt was met.
     """
+    sys.stdout.write(display)
+    sys.stdout.write('\n')
+    sys.stdout.flush()
     inp = raw_input('huxley%s >>> ' % (':'+testname if testname else ''))
     if options:
         if inp in options:
@@ -143,7 +146,8 @@ def _postdata(arg):
 
 def verify_and_prepare_files(filename, testname, mode, overwrite):
     """
-    TODO
+    Prepare directories on file system, including clearing existing data
+    if necessary.
     """
     log.debug(filename)
     if os.path.exists(filename):
@@ -155,7 +159,7 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
                         % testname,
                     ('Y', 'y')
                     ):
-                    raise errors.DoNotOverwrite(
+                    raise exc.DoNotOverwrite(
                         "Aborting because we don't wish to overwrite %s." % \
                         testname
                     )
@@ -172,13 +176,13 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
             raise Exception # todo
     return True
 
-def make_tests(test_files, mode, cwd, data_dir, **kwargs):
+def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R0914
     """
     Given a list of huxley test files, a mode, working directory, and
     options as found on the CLI interface, make tests for use by the
     dispatcher.
     """
-    from huxley.cmdline import Settings, TestRun # TODO move classes
+    from huxley.data import Settings, TestRun
 
     postdata = _postdata(kwargs.pop('postdata'))
     diffcolor = tuple(
@@ -210,7 +214,7 @@ def make_tests(test_files, mode, cwd, data_dir, **kwargs):
 
             url = test_config.get('url', None)
             if not url:
-                raise errors.InvalidHuxleyfile(
+                raise exc.InvalidHuxleyfile(
                     '%s did not have a `url` argument' % testname
                 )
 

@@ -7,32 +7,12 @@ take a screenshot.
 # Licensed under the Apache License, Version 2.0
 # https://www.apache.org/licenses/LICENSE-2.0
 
-import os, time
+import os
 
-from huxley.consts import modes
-from huxley.errors import TestError
+from huxley.constant import modes
+from huxley.exc import TestError
 from huxley.images import images_identical, image_diff
 from huxley import util
-
-
-class Point(object): # pylint: disable=R0903
-    """
-    Contains validated x, y coordinates for screen position.
-    """
-
-    def __init__(self, x, y):
-        """
-        Stores x and y coordinates. They cannot be negative.
-        """
-        if x < 0 or y < 0:
-            raise ValueError(
-                'Coordinates [%s, %s] cannot be negative' % (x, y)
-            )
-        self.x = x
-        self.y = y
-
-    def __repr__(self):
-        return ''.join(('[', str(self.x), ', ', str(self.y), ']'))
 
 
 class TestStep(object): # pylint: disable=R0903
@@ -45,6 +25,9 @@ class TestStep(object): # pylint: disable=R0903
         self.offset_time = offset_time
 
     def execute(self, driver, settings):
+        """
+        Called during :func:`.run.playback`.
+        """
         raise NotImplementedError
 
 
@@ -67,7 +50,7 @@ class Click(TestStep): # pylint: disable=R0903
         )
 
 
-class Key(TestStep): # pylint: disable=R0903
+class Key(TestStep): # pylint: disable=R0903,R0902,W0223
     """
     Typing action by the user.
     """
@@ -76,7 +59,7 @@ class Key(TestStep): # pylint: disable=R0903
 
     def __init__(self, offset_time, key, shift=None,
         eid=None, ecn=None, ecl=None, eid_val=None, ecn_val=None, ecl_val=None
-        ):
+        ): # pylint: disable=R0913
         super(Key, self).__init__(offset_time)
         self.key = key
         self.shift = shift
@@ -112,6 +95,9 @@ class Key(TestStep): # pylint: disable=R0903
 
 
 class Text(TestStep): # pylint: disable=R0903
+    """
+    Text input, after being resolved from Keys.
+    """
 
     playback = True
 
@@ -146,6 +132,9 @@ class Screenshot(TestStep):
         self.index = index
 
     def get_path(self, settings):
+        """
+        Path to screenshot.
+        """
         return os.path.join(settings.path, 'screenshot' + str(self.index) + '.png')
 
     def execute(self, driver, settings):
@@ -170,7 +159,7 @@ class Screenshot(TestStep):
                     raise TestError('Screenshot %s was different.' % self.index)
 
 
-class Scroll(TestStep):
+class Scroll(TestStep): # pylint: disable=R0903
     """
     Scrolling action on the page.
     """

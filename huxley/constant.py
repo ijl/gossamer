@@ -42,7 +42,7 @@ class _ExitCodes(object): # pylint: disable=R0903
     Exit codes... 1 doesn't make sense to me as it's a desired exit, todo...
     """
     OK = 0
-    NEW_SCREENSHOTS = 1
+    FAILED = 1
     ERROR = 2
     ARGUMENT_ERROR = 3 # CLI interface
     RECORDED_RUN_ERROR = 4 # Something went wrong with loading recorded records

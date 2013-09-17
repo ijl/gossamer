@@ -11,29 +11,30 @@ import json
 import operator
 import time
 
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
 
-from huxley.steps import Screenshot, Click, Key, Scroll, Text, Point
-from huxley import util, js, errors
+from huxley.step import Screenshot, Click, Key, Scroll, Text
+from huxley.data import Point
+from huxley import util, js, exc
 
 __all__ = ['playback', 'record', 'rerecord', ]
 
 
 def get_post_js(url, postdata):
     """
-    TODO docs
+    Retrieve data for navigate.
     """
-    markup = '<form method="post" action="%s">' % url
-    for k in postdata.keys():
-        markup += '<input type="hidden" name="%s" />' % k
-    markup += '</form>'
+    markup = '\n'.join([
+        '<form method="post" action="%s">' % url,
+        '\n'.join(['<input type="hidden" name="%s" />' % k for k in postdata.keys()]),
+        '</form>'
+    ])
 
     script = 'var container = document.createElement("div"); container.innerHTML = %s;' \
             % json.dumps(markup)
 
     for (i, v) in enumerate(postdata.values()):
         if not isinstance(v, basestring):
-            # TODO: is there a cleaner way to do this?
             v = json.dumps(v)
         script += 'container.children[0].children[%d].value = %s;' % (i, json.dumps(v))
 
@@ -44,7 +45,7 @@ def get_post_js(url, postdata):
 
 def navigate(driver, url):
     """
-    TODO docs
+    Navigate the driver to the given URL.
     """
     href, postdata = url
     driver.get('about:blank')
@@ -57,9 +58,7 @@ def navigate(driver, url):
 
 class Test(object): # pylint: disable=R0903
     """
-    Holds steps and screensize... is serialized as record.json.
-
-    TODO: why only those two attrs?
+    Persists a test as `record.json`.
     """
 
     def __init__(self, browser, screensize, steps=None):
@@ -74,25 +73,6 @@ class Test(object): # pylint: disable=R0903
             self.screensize,
             self.steps
         )
-
-
-class TestRun(object): # pylint: disable=R0903
-    """
-    Specific instance of a test run. Not sure of use now?
-    """
-
-    def __init__(self,
-            test, path, url, driver, mode, diffcolor, save_diff
-        ): # pylint: disable=R0913
-        if not isinstance(test, Test):
-            raise ValueError('You must provide a Test instance')
-        self.test = test
-        self.path = path
-        self.url = url
-        self.driver = driver
-        self.mode = mode
-        self.diffcolor = diffcolor
-        self.save_diff = save_diff
 
 
 def rerecord(driver, settings, record): # pylint: disable=W0621
@@ -152,11 +132,14 @@ def _process_steps(steps, events, start_time):
         # not merging scrolls; might've been done for rendering side effects
 
     def _filter_steps(step):
+        """
+        Filter for whether a given step should go to playback.
+        """
         return step.offset_time <= last_screenshot_time and \
             step.playback is True
 
     steps = sorted(
-        filter(_filter_steps, steps + merges),
+        filter(_filter_steps, steps + merges), # pylint: disable=W0141
         key=operator.attrgetter('offset_time')
     )
     util.log.debug('filtered steps: %r', steps)
@@ -179,14 +162,14 @@ def _begin_browsing(driver, settings):
             # https://code.google.com/p/selenium/issues/detail?id=1953
             # todo: validate len(cookie) == 1 on import
             driver.refresh()
-    except WebDriverException as exc:
-        if exc.msg.startswith("Error communicating with the remote browser"):
-            raise errors.WebDriverWentAway(
-                "Cannot connect to the WebDriver browser: %s" % str(exc)
+    except WebDriverException as exception:
+        if exception.msg.startswith("Error communicating with the remote browser"):
+            raise exc.WebDriverWentAway(
+                "Cannot connect to the WebDriver browser: %s" % str(exception)
             )
-        elif exc.msg.startswith("<unknown>: SecurityError: DOM Exception"):
-            raise errors.WebDriverSecurityError(
-                "WebDriver experienced a security error: %s" % str(exc)
+        elif exception.msg.startswith("<unknown>: SecurityError: DOM Exception"):
+            raise exc.WebDriverSecurityError(
+                "WebDriver experienced a security error: %s" % str(exception)
             )
         raise
 
@@ -218,7 +201,7 @@ def record(driver, settings):
             (len(steps), 's' if len(steps) > 1 else '')
         )
     if len(steps) == 0:
-        raise errors.NoScreenshotsRecorded(
+        raise exc.NoScreenshotsRecorded(
             'No screenshots recorded for %s--please use at least one' % \
                 settings.name
         )
@@ -228,7 +211,7 @@ def record(driver, settings):
         events = driver.execute_script('return window._getHuxleyEvents();')
     except:
         # todo fix...
-        raise errors.TestError(
+        raise exc.TestError(
             'Could not call window._getHuxleyEvents(). '
             'This usually means you navigated to a new page, '
             'which is currently unsupported.'
@@ -236,7 +219,7 @@ def record(driver, settings):
     if type(events) in (unicode, str) and events.startswith(
                                     'A script on this page may be busy, '
                                     'or it may have stopped responding.'):
-        raise errors.TestError('Event-capturing script was unresponsive.')
+        raise exc.TestError('Event-capturing script was unresponsive.')
 
     record = Test( # pylint: disable=W0621
         browser = settings.browser,
@@ -286,14 +269,14 @@ def playback(driver, settings, record): # pylint: disable=W0621
                 else:
                     timeout += 1
             if timeout == 150:
-                raise errors.PlaybackTimeout(
+                raise exc.PlaybackTimeout(
                     '%s timed out while waiting for the page to be static.' \
                         % settings.name
                 )
 
-    except Exception as exc:
-        passing = False
-        util.log.error('%s', exc) # TODO
+    except Exception as exception: # pylint: disable=W0703
+        passing = False # make passing bitmask for pass, fail, error?
+        util.log.error('%s', exception)
 
     sys.stdout.write('ok.\n' if passing else 'FAIL.\n')
     sys.stdout.flush()
