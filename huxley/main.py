@@ -11,9 +11,7 @@ Tests can be setup through the command-line interface via
 # https://www.apache.org/licenses/LICENSE-2.0
 
 from huxley.constant import modes
-from huxley import run
-from huxley import util
-from huxley import exc
+from huxley import run, util, exc
 
 
 def dispatch(driver, mode, tests, stop_on_error=False):

@@ -172,8 +172,7 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
             os.makedirs(os.path.join(filename, 'last'))
             # todo exc
         else:
-            print '%s does not exist' % filename
-            raise Exception # todo
+            raise exc.EmptyPath('%s does not exist\n' % filename)
     return True
 
 def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R0914
@@ -184,14 +183,13 @@ def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R09
     """
     from huxley.data import Settings, TestRun
 
-    postdata = _postdata(kwargs.pop('postdata'))
+    postdata = _postdata(kwargs.pop('postdata', {}))
     diffcolor = tuple(
-        int(x) for x in
-            (kwargs.pop('diffcolor') or DEFAULT_DIFFCOLOR).split(',')
+        int(x) for x in (kwargs.pop('diffcolor', None) or DEFAULT_DIFFCOLOR).split(',')
     )
 
     tests = {}
-    names = kwargs.pop('names')
+    names = kwargs.pop('names', None)
     overwrite = kwargs.get('overwrite', False)
 
     for file_name in test_files:

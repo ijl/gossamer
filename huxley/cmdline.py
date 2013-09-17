@@ -12,12 +12,12 @@ import sys
 
 import plac # pylint: disable=F0401
 
+from huxley.main import dispatch
 from huxley.constant import modes, exits, \
     DEFAULT_WEBDRIVER, DEFAULT_TESTFILE, \
     DEFAULT_DIFFCOLOR, DEFAULT_SCREENSIZE, \
     DEFAULT_BROWSER
 from huxley import util, exc
-from huxley.main import dispatch
 from huxley.version import __version__
 
 
@@ -132,6 +132,7 @@ def initialize(
         util.log = util.logger(__name__, 'DEBUG')
 
     names = names.split(',') if names else None
+    browser = browser or DEFAULT_BROWSER
 
     cwd = os.getcwd()
     test_files = []
@@ -183,9 +184,8 @@ def initialize(
         sys.stdout.flush()
         return exits.RECORDED_RUN_ERROR
 
-    # driver
     try:
-        driver = util.get_driver((browser or DEFAULT_BROWSER), local, remote)
+        driver = util.get_driver(browser, local, remote)
         # run the tests
         try:
             logs = dispatch(driver, mode, tests)
@@ -211,6 +211,7 @@ def initialize(
             driver.quit()
         except UnboundLocalError: # pragma: no cover
             pass
+
 
 def main():
     """

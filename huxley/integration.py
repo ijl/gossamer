@@ -8,71 +8,57 @@ Integrate with unittest.
 
 import os
 import unittest
-import sys
+# import sys
 
 from huxley.main import dispatch
 from huxley.constant import modes, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL, \
     DEFAULT_BROWSER
 from huxley import util
 
-# Python unittest integration. These fail when the screen shots change, and they
-# will pass the next time since they write new ones.
+def run_huxleyfile(huxleyfile, data_dir, browser=None, local=None, remote=None):
+    """
+    Call this to read a Huxleyfile and run all of its tests.
+    """
+    case = HuxleyTestCase
+
+    cwd = os.getcwd()
+
+    browser = browser or DEFAULT_BROWSER
+    local = local or LOCAL_WEBDRIVER_URL
+    remote = remote or REMOTE_WEBDRIVER_URL
+
+    options = {'browser': browser, 'local': local, 'remote': remote}
+
+    tests = util.make_tests([huxleyfile], case.mode, cwd, data_dir, **options)
+    try:
+        case.driver = util.get_driver(browser, local, remote)
+        for key, test in tests.items():
+            case.tests.append(dispatch(case.driver, case.mode, {key: test, }))
+        return case
+    finally:
+        case.driver.quit() # eeek. why wasn't tearDown doing it?
+
 class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
     """
-    unittest case... why not use setUp and tearDown? multiple huxley files?
+    unittest case.
     """
-    mode = None
-    local_webdriver_url = LOCAL_WEBDRIVER_URL
-    remote_webdriver_url = REMOTE_WEBDRIVER_URL
-
-    def setUp(self):
-        super(HuxleyTestCase, self).setup(self)
-
-    def huxley(self, filename, url, postdata=None):
-        msg = 'Running Huxley test: ' + os.path.basename(filename)
-        print
-        print '-' * len(msg)
-        print msg
-        print '-' * len(msg)
-
-        browser = DEFAULT_BROWSER # todo
-        cwd = os.getcwd() # os.abspath(filename)?
-
-        # TODO data_dir
-        data_dir = None
-
-        try:
-            driver = util.get_driver(browser)
-            tests = util.make_tests(filename, self.mode, cwd, data_dir,
-                postdata=postdata
-            )
-            logs = dispatch(driver, self.mode, tests)
-
-            # self.assertEqual(0, r,
-            #     'New screenshots were taken and written. '
-            #     'Please be sure to review and check in.')
-        finally:
-            driver.quit()
-
-    def tearDown(self):
-        pass
+    mode = modes.PLAYBACK
+    tests = []
 
 
-def unittest_main(module='__main__'):
-    """
-    unittest integration... TODO
-    """
-    if len(sys.argv) > 1 and sys.argv[1] == 'record':
-        # Create a new test by recording the user's browsing session
-        HuxleyTestCase.mode = modes.RECORD
-    elif len(sys.argv) > 1 and sys.argv[1] == 'playback':
-        # When running in a continuous test runner you may want the
-        # tests to continue to fail (rather than re-recording new screen
-        # shots) to indicate a commit that changed a screen shot but did
-        # not rerecord. TODO: we may want to build in auto-retry functionality
-        # and automatically back off the sleep factor.
-        HuxleyTestCase.mode = modes.PLAYBACK
-    # The default behavior is to play back the test and save new screen shots
-    # if they change.
+# def unittest_main(module='__main__'):
+#     """
+#     unittest integration.
 
-    unittest.main(module)
+#     When running in a continuous test runner you may want the
+#     tests to continue to fail (rather than re-recording new screen
+#     shots) to indicate a commit that changed a screen shot but did
+#     not rerecord.
+#     and automatically back off the sleep factor.
+
+#     The default behavior is to play back the test and save new screen shots
+#     if they change.
+#     """
+#     # sys.argv[0] is Huxleyfile
+#     HuxleyTestCase.huxleyfile = sys.argv[0]
+#     unittest.main(module)

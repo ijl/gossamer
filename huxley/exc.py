@@ -33,6 +33,11 @@ class DoNotOverwrite(Exception):
     User indicates they don't want to overwrite an existing test.
     """
 
+class EmptyPath(Exception):
+    """
+    In playing back, a data directory did not exist.
+    """
+
 class InvalidBrowser(Exception):
     """
     We don't recognize a given `browser` value.
