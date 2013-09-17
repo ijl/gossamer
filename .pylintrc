@@ -1,0 +1,11 @@
+[MASTER]
+
+[MESSAGES CONTROL]
+
+[REPORTS]
+include-ids=yes
+output-format=colorized
+
+[FORMAT]
+indent-string='    '
+max-line-length=99

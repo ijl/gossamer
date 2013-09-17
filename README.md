@@ -15,3 +15,8 @@ Apache 2.0
 ## Known Issues
 
 * Scrolling is unreliable.
+
+## Contributing
+
+* Please use the included .pylintrc, and don't introduce any new errors or warnings.
+
