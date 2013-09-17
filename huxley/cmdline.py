@@ -174,7 +174,7 @@ def initialize(
 
     # make tests using the test_files and mode we've resolved to
     try:
-        tests = util.make_tests(test_files, mode, cwd, data_dir, **options)
+        tests = util.make_tests(test_files, mode, data_dir, cwd, **options)
     except exc.DoNotOverwrite as exception:
         sys.stdout.write(str(exception))
         sys.stdout.write('\n')

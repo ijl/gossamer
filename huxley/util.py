@@ -179,7 +179,7 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
             raise exc.EmptyPath('%s does not exist\n' % filename)
     return True
 
-def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R0914,R0912
+def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disable=R0914,R0912
     """
     Given a list of huxley test files, a mode, working directory, and
     options as found on the CLI interface, make tests for use by the
@@ -245,6 +245,8 @@ def make_tests(test_files, mode, cwd, data_dir, **kwargs): # pylint: disable=R09
                 default_filename
             )
             if not os.path.isabs(filename):
+                if not cwd:
+                    raise ValueError('relative filename and no cwd')
                 filename = os.path.join(cwd, filename)
 
             verify_and_prepare_files(filename, testname, mode, overwrite)
