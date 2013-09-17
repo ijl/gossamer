@@ -1,24 +1,14 @@
-# Copyright (c) 2013 Facebook
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 :func:`.dispatch` runs tests that have already been setup.
 
-Tests can be setup through the command-line interface via 
-:func:`huxley.cmdline.main` and through unittest via 
+Tests can be setup through the command-line interface via
+:func:`huxley.cmdline.main` and through unittest via
 :class:`huxley.integration.HuxleyTestCase`.
 """
+
+# Copyright (c) 2013 contributors; see AUTHORS.
+# Licensed under the Apache License, Version 2.0
+# https://www.apache.org/licenses/LICENSE-2.0
 
 from huxley.consts import modes
 from huxley import run
@@ -28,8 +18,8 @@ from huxley import errors
 
 def dispatch(driver, mode, tests, stop_on_error=False):
     """
-    Given driver and a list of tests, dispatch the appropriate runs and 
-    return an exit code. For consumption by the CLI and unittest 
+    Given driver and a list of tests, dispatch the appropriate runs and
+    return an exit code. For consumption by the CLI and unittest
     integration.
     """
     funcs = {
