@@ -7,7 +7,7 @@ Smoke tests. Needs to be improved.
 # https://www.apache.org/licenses/LICENSE-2.0
 
 import unittest
-from huxley import util
+from gossamer import util
 import json
 import pkg_resources
 import os
