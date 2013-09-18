@@ -115,9 +115,7 @@ def initialize(
         verbose=False
     ): # pylint: disable=R0913,W0613
     """
-    Given arguments from the `plac` argument parser, determine the mode and
-    test files so tests can be constructed, then pass tests to the
-    dispatcher.
+    Gossamer CLI.
     """
 
     if version:
@@ -140,7 +138,7 @@ def initialize(
         for name in glob.glob(pattern):
             test_files.append(os.path.join(cwd, name))
     if len(test_files) == 0:
-        sys.stdout.write('No Gossamerfile found')
+        sys.stdout.write('No Gossamerfile found.\n')
         sys.stdout.flush()
         return exits.ERROR
 
@@ -153,7 +151,7 @@ def initialize(
 
     # mode
     if record and rerecord:
-        sys.stdout.write('Cannot specify both -r and -rr')
+        sys.stdout.write('Cannot specify both -r and -rr\n')
         sys.stdout.flush()
         return exits.ARGUMENT_ERROR
     if record:

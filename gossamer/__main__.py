@@ -1,17 +1,13 @@
 """
-See main.py.
+Convenience for command-line...
 """
 
 # Copyright (c) 2013 contributors; see AUTHORS.
 # Licensed under the Apache License, Version 2.0
 # https://www.apache.org/licenses/LICENSE-2.0
 
-from gossamer.integration import run_gossamerfile
+from gossamer.cmdline import main
 
-__all__ = ['run_gossamerfile', ]
-
-__version__ = '0.9dev'
 
 if __name__ == '__main__':
-    from gossamer.cmdline import main
     main()
