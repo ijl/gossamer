@@ -44,21 +44,21 @@ class _ExitCodes(object): # pylint: disable=R0903
     RECORDED_RUN_ERROR = 4 # Something went wrong with loading recorded records
 
 class _OK(object): # pylint: disable=R0903,C0111
-    def __unicode__(self): # pylint: disable=R0201
+    def __unicode__(self): # pragma: no cover, pylint: disable=R0201
         return u'ok'
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         return self.__unicode__()
 
 class _FAIL(object): # pylint: disable=R0903,C0111
-    def __unicode__(self): # pylint: disable=R0201
+    def __unicode__(self): # pragma: no cover, pylint: disable=R0201
         return u'FAIL'
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         return self.__unicode__()
 
 class _ERROR(object): # pylint: disable=R0903,C0111
-    def __unicode__(self): # pylint: disable=R0201
+    def __unicode__(self): # pragma: no cover, pylint: disable=R0201
         return u'ERROR'
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         return self.__unicode__()
 
 class _StatusCodes(object): # pylint: disable=R0903

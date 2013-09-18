@@ -17,14 +17,6 @@ class Test(object): # pylint: disable=R0903
         self.version = version
         self.settings = settings
         self.steps = steps
-
-    def __repr__(self):
-        return "%s: %r %r" % (
-            self.__class__.__name__,
-            self.settings,
-            self.steps
-        )
-
     def __json__(self):
         return {
             self.settings.name: {
@@ -33,6 +25,14 @@ class Test(object): # pylint: disable=R0903
                 'steps': self.steps,
             }
         }
+
+    def __repr__(self): # pragma: no cover
+        return "%s: %r %r" % (
+            self.__class__.__name__,
+            self.settings,
+            self.steps
+        )
+
 
 
 class Settings(object): # pylint: disable=R0903,R0902
@@ -66,7 +66,7 @@ class Settings(object): # pylint: disable=R0903,R0902
     def __json__(self):
         return self.__dict__
 
-    def __repr__(self):
+    def __repr__(self): # pragma: no cover
         return '%s: %r' % (self.__class__.__name__, self.__dict__)
 
 
@@ -89,5 +89,5 @@ class Point(object): # pylint: disable=R0903
     def __json__(self):
         return self.__dict__
 
-    def __repr__(self):
+    def __repr__(self): # pragma: no cover
         return ''.join(('[', str(self.x), ', ', str(self.y), ']'))

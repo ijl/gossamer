@@ -18,7 +18,7 @@ from huxley.constant import modes, exits, states, \
     DEFAULT_DIFFCOLOR, DEFAULT_SCREENSIZE, \
     DEFAULT_BROWSER
 from huxley import util, exc
-from huxley.version import __version__
+from huxley import __version__
 
 
 @plac.annotations(

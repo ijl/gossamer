@@ -8,7 +8,7 @@ JavaScript to be executed in the testing user agent.
 
 import json
 
-def isPageChanging(timeout):
+def isPageChanging(timeout): # pragma: no cover
     """
     Has page changed within the given `timeout`, in milliseconds, and are
     there no XMLHTTP requests active?
@@ -18,7 +18,7 @@ return window._huxleyIsPageChanging(%s);
 """ % timeout
 
 
-def isPageLoaded():
+def isPageLoaded(): # pragma: no cover
     """
     Is the page loaded? Indicated by an event listener on `load`.
     """
@@ -27,7 +27,7 @@ return window._huxleyLoaded == true;
 """
 
 
-def get_post(url, postdata):
+def get_post(url, postdata): # pragma: no cover
     """
     Retrieve data for navigate.
     """

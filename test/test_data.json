@@ -1,0 +1,105 @@
+{
+
+    "example": {
+        "version": 1,
+        "steps": [
+            {
+                "Screenshot": {
+                    "num": 1,
+                    "offset_time": 1785
+                }
+            },
+            {
+                "Click": {
+                    "offset_time": 3228,
+                    "pos": {
+                        "y": 54,
+                        "x": 724
+                    }
+                }
+            },
+            {
+                "Screenshot": {
+                    "num": 2,
+                    "offset_time": 4287
+                }
+            },
+            {
+                "Click": {
+                    "offset_time": 5192,
+                    "pos": {
+                        "y": 205,
+                        "x": 386
+                    }
+                }
+            },
+            {
+                "Text": {
+                    "identifier_type": "classlist",
+                    "identifier": ".username",
+                    "offset_time": 7702,
+                    "value": "username@example.com"
+                }
+            },
+            {
+                "Text": {
+                    "identifier_type": "classlist",
+                    "identifier": ".password",
+                    "offset_time": 8222,
+                    "value": "password"
+                }
+            },
+            {
+                "Screenshot": {
+                    "num": 3,
+                    "offset_time": 8912
+                }
+            },
+            {
+                "Click": {
+                    "offset_time": 9860,
+                    "pos": {
+                        "y": 349,
+                        "x": 588
+                    }
+                }
+            },
+            {
+                "Click": {
+                    "offset_time": 9863,
+                    "pos": {
+                        "y": 0,
+                        "x": 0
+                    }
+                }
+            },
+            {
+                "Screenshot": {
+                    "num": 4,
+                    "offset_time": 11336
+                }
+            }
+        ],
+        "settings": {
+            "cookies": null,
+            "name": "example",
+            "postdata": null,
+            "url": "http://www.example.com",
+            "diffcolor": [
+                0,
+                255,
+                0
+            ],
+            "save_diff": true,
+            "mode": 1,
+            "screensize": [
+                800,
+                1000
+            ],
+            "path": "/path/to/test",
+            "desc": "Example test",
+            "browser": "chrome"
+        }
+    }
+
+}

@@ -66,7 +66,7 @@ def import_recorded_run(inc):
     """
     Given a JSON object, create our objects.
     """
-    from huxley.data import Test
+    from huxley.data import Test, Settings
     from huxley import step
     for _, rec in inc.items(): # 1-element list
         if rec['version'] != 1:
@@ -75,10 +75,10 @@ def import_recorded_run(inc):
         for each in rec['steps']:
             key, val = each.items()[0]
             steps.append(getattr(step, key)(**val))
-        steps = sorted(steps, operator.attrgetter('offset_time'))
+        steps = sorted(steps, key=operator.attrgetter('offset_time'))
         test = Test(
             version=rec['version'],
-            settings=rec['settings'],
+            settings=Settings(**rec['settings']),
             steps=steps
         )
     return test
@@ -104,6 +104,9 @@ def write_recorded_run(filename, output):
     """
     Serialize a recorded run to a JSON file.
     """
+    from huxley.data import Test
+    if not isinstance(output, Test):
+        raise ValueError()
     try:
         with open(os.path.join(filename, 'record.json'), 'w') as fp:
             fp.write(json.dumps(output, cls=Encoder))

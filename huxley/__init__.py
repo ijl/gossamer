@@ -7,6 +7,8 @@ See main.py.
 # https://www.apache.org/licenses/LICENSE-2.0
 
 from huxley.integration import run_huxleyfile
-from huxley.version import __version__
 
 __all__ = ['run_huxleyfile', ]
+
+__version__ = '0.9dev'
+
