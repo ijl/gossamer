@@ -1,6 +1,7 @@
 [MASTER]
 
 [MESSAGES CONTROL]
+disable=C0103,R0401,W0142
 
 [REPORTS]
 include-ids=yes
