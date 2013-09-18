@@ -12,13 +12,13 @@ import sys
 
 import plac # pylint: disable=F0401
 
-from huxley.main import dispatch
-from huxley.constant import modes, exits, states, \
+from gossamer.main import dispatch
+from gossamer.constant import modes, exits, states, \
     DEFAULT_WEBDRIVER, DEFAULT_TESTFILE, \
     DEFAULT_DIFFCOLOR, DEFAULT_SCREENSIZE, \
     DEFAULT_BROWSER
-from huxley import util, exc
-from huxley import __version__
+from gossamer import util, exc
+from gossamer import __version__
 
 
 @plac.annotations(
@@ -121,11 +121,11 @@ def initialize(
     """
 
     if version:
-        sys.stdout.write('Huxley %s\n' % __version__)
+        sys.stdout.write('Gossamer %s\n' % __version__)
         sys.stdout.flush()
         return exits.OK
 
-    sys.stdout.write('Initializing huxley and opening WebDriver...\n')
+    sys.stdout.write('Initializing gossamer and opening WebDriver...\n')
     sys.stdout.flush()
 
     if verbose:
@@ -140,7 +140,7 @@ def initialize(
         for name in glob.glob(pattern):
             test_files.append(os.path.join(cwd, name))
     if len(test_files) == 0:
-        sys.stdout.write('No Huxleyfile found')
+        sys.stdout.write('No Gossamerfile found')
         sys.stdout.flush()
         return exits.ERROR
 
@@ -226,10 +226,10 @@ def initialize(
 
 def main():
     """
-    Defined as the `huxley` command in setup.py.
+    Defined as the `gossamer` command in setup.py.
 
     Runs the argument parser and passes settings to
-    :func:`huxley.main.dispatcher`.
+    :func:`gossamer.main.dispatcher`.
     """
     try:
         sys.exit(plac.call(initialize))

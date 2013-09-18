@@ -14,7 +14,7 @@ def isPageChanging(timeout): # pragma: no cover
     there no XMLHTTP requests active?
     """
     return """
-return window._huxleyIsPageChanging(%s);
+return window._gossamerIsPageChanging(%s);
 """ % timeout
 
 
@@ -23,7 +23,7 @@ def isPageLoaded(): # pragma: no cover
     Is the page loaded? Indicated by an event listener on `load`.
     """
     return """
-return window._huxleyLoaded == true;
+return window._gossamerLoaded == true;
 """
 
 
@@ -55,42 +55,42 @@ return Date.now();
 
 pageLoadObserver = """
 (function() {
-    window._huxleyLoaded = false;
-    window.addEventListener("DOMContentLoaded", function() {window._huxleyLoaded = true; }, false)
+    window._gossamerLoaded = false;
+    window.addEventListener("DOMContentLoaded", function() {window._gossamerLoaded = true; }, false)
 })(window);
 """
 
 # https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
 pageChangingObserver = """
 (function() {
-    window._huxleyLastModified = Date.now();
+    window._gossamerLastModified = Date.now();
     var _XMLHttpRequest = XMLHttpRequest.prototype.open;;
-    window._huxleyXMLHTTPs = 0;
+    window._gossamerXMLHTTPs = 0;
     XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
-        window._huxleyXMLHTTPs++;
+        window._gossamerXMLHTTPs++;
         this.addEventListener("readystatechange", function() {
             if (this.readyState == 4) {
-                window._huxleyXMLHTTPs--;
+                window._gossamerXMLHTTPs--;
             }
         }, false);
         _XMLHttpRequest.call(this, method, url, async, user, pass);
     }
 })(XMLHttpRequest);
 (function() {
-    window._huxleyIsPageChanging = function(timeout) {
-        return timeout > ( Date.now() - window._huxleyLastModified ) &&
-            window._huxleyXMLHTTPs == 0;
+    window._gossamerIsPageChanging = function(timeout) {
+        return timeout > ( Date.now() - window._gossamerLastModified ) &&
+            window._gossamerXMLHTTPs == 0;
     }
     var observer = new MutationObserver(
         function(mutations) {
-            window._huxleyLastModified = Date.now();
+            window._gossamerLastModified = Date.now();
         }
     );
     observer.observe(document, { childList: true });
 })();
 """
 
-getHuxleyEvents = """
+getGossamerEvents = """
 (function() {
     var events = [];
 
@@ -131,6 +131,6 @@ getHuxleyEvents = """
         true
     );
 
-    window._getHuxleyEvents = function() { return events };
+    window._getGossamerEvents = function() { return events };
 })();
 """

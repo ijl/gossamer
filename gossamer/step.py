@@ -10,10 +10,10 @@ take a screenshot.
 import os
 import time
 
-from huxley.constant import modes
-from huxley.exc import TestError
-from huxley.images import images_identical, image_diff
-from huxley import util
+from gossamer.constant import modes
+from gossamer.exc import TestError
+from gossamer.images import images_identical, image_diff
+from gossamer import util
 
 
 class TestStep(object): # pylint: disable=R0903
@@ -51,7 +51,7 @@ class Navigate(TestStep): # pylint: disable=R0903
         self.url = url
 
     def execute(self, driver, settings):
-        from huxley.run import navigate, wait_until_loaded
+        from gossamer.run import navigate, wait_until_loaded
         util.log.debug('Navigating to %s', self.url)
         navigate(driver, (self.url, None))
         wait_until_loaded(driver)

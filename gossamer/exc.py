@@ -51,9 +51,9 @@ class InvalidBrowser(Exception):
     We don't recognize a given `browser` value.
     """
 
-class InvalidHuxleyfile(Exception):
+class InvalidGossamerfile(Exception):
     """
-    An error parsing the Huxleyfile.
+    An error parsing the Gossamerfile.
     """
 
 class InvalidWebDriverConfiguration(Exception):

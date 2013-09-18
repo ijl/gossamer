@@ -14,10 +14,13 @@ try:
     from PIL import ImageChops
 except ImportError: # pragma: no cover
     # PIL
-    import Image
-    import ImageChops
+    try:
+        import Image
+        import ImageChops
+    except ImportError:
+        raise ImportError('Could not import Pillow or PIL')
 
-from huxley import util, exc
+from gossamer import util, exc
 
 
 def images_identical(path1, path2):

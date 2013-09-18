@@ -12,10 +12,10 @@ import time
 
 from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
 
-from huxley.constant import states, DATA_VERSION
-from huxley.step import Screenshot, Click, Key, Scroll, Text, Navigate
-from huxley.data import Point, Test
-from huxley import util, js, exc
+from gossamer.constant import states, DATA_VERSION
+from gossamer.step import Screenshot, Click, Key, Scroll, Text, Navigate
+from gossamer.data import Point, Test
+from gossamer import util, js, exc
 
 __all__ = ['playback', 'record', 'rerecord', ]
 
@@ -31,6 +31,13 @@ def navigate(driver, url):
         driver.get(href)
     else:
         driver.execute_script(js.get_post(href, postdata))
+    _load_initial_js(driver)
+
+def _load_initial_js(driver):
+    """
+    Split for calling in :func:`.record` after a URL change.
+    """
+    driver.execute_script(js.getGossamerEvents)
     driver.execute_script(js.pageLoadObserver)
     driver.execute_script(js.pageChangingObserver)
 
@@ -136,6 +143,7 @@ def _begin_browsing(driver, settings):
             # https://code.google.com/p/selenium/issues/detail?id=1953
             # todo: validate len(cookie) == 1 on import
             driver.refresh()
+            _load_initial_js(driver)
     except WebDriverException as exception:
         if exception.msg.startswith("Error communicating with the remote browser"):
             raise exc.WebDriverWentAway(
@@ -159,7 +167,6 @@ def record(driver, settings):
     Record a given test.
     """
     _begin_browsing(driver, settings)
-    driver.execute_script(js.getHuxleyEvents)
     start_time = driver.execute_script(js.now)
     url = settings.url
     steps = []
@@ -177,6 +184,7 @@ def record(driver, settings):
                 )
             )
             url = driver.current_url
+            _load_initial_js(driver)
         sys.stdout.write('Taking screenshot ... ')
         sys.stdout.flush()
         screenshot_step = Screenshot(
@@ -196,15 +204,7 @@ def record(driver, settings):
         )
 
     # now capture the events
-    try:
-        events = driver.execute_script('return window._getHuxleyEvents();')
-    except:
-        # todo fix...
-        raise exc.TestError(
-            'Could not call window._getHuxleyEvents(). '
-            'This usually means you navigated to a new page, '
-            'which is currently unsupported.'
-        )
+    events = driver.execute_script('return window._getGossamerEvents();')
     if type(events) in (unicode, str) and events.startswith(
                                     'A script on this page may be busy, '
                                     'or it may have stopped responding.'):

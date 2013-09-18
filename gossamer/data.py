@@ -59,7 +59,7 @@ class Settings(object): # pylint: disable=R0903,R0902
 
     def navigate(self):
         """
-        Return data in form expected by :func:`huxley.run.navigate`.
+        Return data in form expected by :func:`gossamer.run.navigate`.
         """
         return (self.url, self.postdata)
 

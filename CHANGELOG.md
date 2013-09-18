@@ -1,10 +1,8 @@
 # Changelog
 
-## 0.3
+## 0.9
 
-* Expose `--save-diff` command-line option instead of requiring an external image diff tool
-* Expose `screensize` parameter in Huxleyfile
-* Expose `--version` command-line option
+* Rewrite
 
 ## 0.2
 

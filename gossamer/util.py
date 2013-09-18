@@ -16,9 +16,9 @@ from urllib2 import URLError
 
 from selenium import webdriver  # pylint: disable=F0401
 
-from huxley import exc
+from gossamer import exc
 
-from huxley.constant import modes, exits, \
+from gossamer.constant import modes, exits, \
     DEFAULT_DIFFCOLOR, REMOTE_WEBDRIVER_URL, DATA_VERSION
 
 def logger(name, level=None):
@@ -66,8 +66,8 @@ def import_recorded_run(inc):
     """
     Given a JSON object, create our objects.
     """
-    from huxley.data import Test, Settings
-    from huxley import step
+    from gossamer.data import Test, Settings
+    from gossamer import step
     for _, rec in inc.items(): # 1-element list
         if rec['version'] != 1:
             raise NotImplementedError()
@@ -104,7 +104,7 @@ def write_recorded_run(filename, output):
     """
     Serialize a recorded run to a JSON file.
     """
-    from huxley.data import Test
+    from gossamer.data import Test
     if not isinstance(output, Test):
         raise ValueError()
     try:
@@ -155,7 +155,7 @@ def prompt(display, options=None, testname=None):
     sys.stdout.write(display)
     sys.stdout.write('\n')
     sys.stdout.flush()
-    inp = raw_input('huxley%s >>> ' % (':'+testname if testname else ''))
+    inp = raw_input('gossamer%s >>> ' % (':'+testname if testname else ''))
     if options:
         if inp in options:
             return True
@@ -213,11 +213,11 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
 
 def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disable=R0914,R0912
     """
-    Given a list of huxley test files, a mode, working directory, and
+    Given a list of gossamer test files, a mode, working directory, and
     options as found on the CLI interface, make tests for use by the
     dispatcher.
     """
-    from huxley.data import Settings, Test
+    from gossamer.data import Settings, Test
 
     postdata = _postdata(kwargs.pop('postdata', {}))
     diffcolor = tuple(
@@ -247,7 +247,7 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
 
             url = test_config.get('url', None)
             if not url:
-                raise exc.InvalidHuxleyfile(
+                raise exc.InvalidGossamerfile(
                     '%s did not have a `url` argument' % testname
                 )
 

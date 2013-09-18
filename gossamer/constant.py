@@ -10,7 +10,7 @@ import os
 import json
 
 
-DEFAULT_TESTFILE = 'Huxleyfile'
+DEFAULT_TESTFILE = 'Gossamerfile'
 
 DEFAULT_WEBDRIVER = 'http://localhost:4444/wd/hub'
 

@@ -2,8 +2,8 @@
 :func:`.dispatch` runs tests that have already been setup.
 
 Tests can be setup through the command-line interface via
-:func:`huxley.cmdline.main` and through unittest via
-:class:`huxley.integration.HuxleyTestCase`.
+:func:`gossamer.cmdline.main` and through unittest via
+:class:`gossamer.integration.GossamerTestCase`.
 """
 
 # Copyright (c) 2013 contributors; see AUTHORS.
@@ -12,8 +12,8 @@ Tests can be setup through the command-line interface via
 
 from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
 
-from huxley.constant import modes, states
-from huxley import run, exc, util
+from gossamer.constant import modes, states
+from gossamer import run, exc, util
 
 
 def dispatch(driver, mode, tests, stop_on_error=False):

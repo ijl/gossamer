@@ -9,3 +9,4 @@ venv
 *.egg-info
 *.egg
 selenium
+.pypirc

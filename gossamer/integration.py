@@ -8,17 +8,17 @@ Integrate with unittest.
 
 import unittest
 
-from huxley.main import dispatch
-from huxley.constant import modes, states, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL, \
+from gossamer.main import dispatch
+from gossamer.constant import modes, states, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL, \
     DEFAULT_BROWSER
-from huxley import util, exc
+from gossamer import util, exc
 
 
-def run_huxleyfile(huxleyfile, data_dir, browser=None, local=None, remote=None):
+def run_gossamerfile(gossamerfile, data_dir, browser=None, local=None, remote=None):
     """
-    Call this to read a Huxleyfile and run all of its tests.
+    Call this to read a Gossamerfile and run all of its tests.
     """
-    case = HuxleyTestCase
+    case = GossamerTestCase
 
     browser = browser or DEFAULT_BROWSER
     local = local or LOCAL_WEBDRIVER_URL
@@ -26,7 +26,7 @@ def run_huxleyfile(huxleyfile, data_dir, browser=None, local=None, remote=None):
 
     options = {'browser': browser, 'local': local, 'remote': remote}
 
-    tests = util.make_tests([huxleyfile], modes.PLAYBACK, data_dir, **options)
+    tests = util.make_tests([gossamerfile], modes.PLAYBACK, data_dir, **options)
     for key, test in tests.items():
         case.tests.append(run_nose(case, key, test, test.settings.browser, local, remote))
     return case
@@ -47,7 +47,7 @@ def run_nose(self, name, test, browser, local, remote): # pylint: disable=R0913
         driver.quit()
 
 
-class HuxleyTestCase(unittest.TestCase): # pylint: disable=R0904
+class GossamerTestCase(unittest.TestCase): # pylint: disable=R0904
     """
     unittest case.
     """
