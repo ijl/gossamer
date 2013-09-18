@@ -9,40 +9,30 @@ Non-step data structures.
 
 class Test(object): # pylint: disable=R0903
     """
-    Persists a test as `record.json`.
-    """
-
-    def __init__(self, browser, screensize, steps=None):
-        self.version = 1
-        self.browser = browser
-        self.screensize = screensize
-        self.steps = steps or []
-
-    def __repr__(self):
-        return "%s: %s %s %r" % (
-            self.__class__.__name__,
-            self.browser,
-            self.screensize,
-            self.steps
-        )
-
-
-class TestRun(object):  # pylint: disable=R0903
-    """
     Object to be passed into dispatch... containing all information
     to run (and repeat, if persisted) a test.
     """
 
-    def __init__(self, settings, recorded_run=None):
+    def __init__(self, version, settings, steps):
+        self.version = version
         self.settings = settings
-        self.recorded_run = recorded_run
+        self.steps = steps
 
     def __repr__(self):
-        return "%s: %r, %r" % (
+        return "%s: %r %r" % (
             self.__class__.__name__,
             self.settings,
-            self.recorded_run
+            self.steps
         )
+
+    def __json__(self):
+        return {
+            self.settings.name: {
+                'version': self.version,
+                'settings': self.settings,
+                'steps': self.steps,
+            }
+        }
 
 
 class Settings(object): # pylint: disable=R0903,R0902
@@ -73,6 +63,9 @@ class Settings(object): # pylint: disable=R0903,R0902
         """
         return (self.url, self.postdata)
 
+    def __json__(self):
+        return self.__dict__
+
     def __repr__(self):
         return '%s: %r' % (self.__class__.__name__, self.__dict__)
 
@@ -92,6 +85,9 @@ class Point(object): # pylint: disable=R0903
             )
         self.x = x
         self.y = y
+
+    def __json__(self):
+        return self.__dict__
 
     def __repr__(self):
         return ''.join(('[', str(self.x), ', ', str(self.y), ']'))

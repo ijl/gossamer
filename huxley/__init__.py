@@ -10,4 +10,3 @@ from huxley.integration import run_huxleyfile
 from huxley.version import __version__
 
 __all__ = ['run_huxleyfile', ]
-

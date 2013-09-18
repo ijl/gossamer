@@ -7,41 +7,17 @@ Record, playback, &c a given test.
 # https://www.apache.org/licenses/LICENSE-2.0
 
 import sys
-import json
 import operator
 import time
 
 from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
 
-from huxley.constant import states
-from huxley.step import Screenshot, Click, Key, Scroll, Text
+from huxley.constant import states, DATA_VERSION
+from huxley.step import Screenshot, Click, Key, Scroll, Text, Navigate
 from huxley.data import Point, Test
 from huxley import util, js, exc
 
 __all__ = ['playback', 'record', 'rerecord', ]
-
-
-def get_post_js(url, postdata):
-    """
-    Retrieve data for navigate.
-    """
-    markup = '\n'.join([
-        '<form method="post" action="%s">' % url,
-        '\n'.join(['<input type="hidden" name="%s" />' % k for k in postdata.keys()]),
-        '</form>'
-    ])
-
-    script = 'var container = document.createElement("div"); container.innerHTML = %s;' \
-            % json.dumps(markup)
-
-    for (i, v) in enumerate(postdata.values()):
-        if not isinstance(v, basestring):
-            v = json.dumps(v)
-        script += 'container.children[0].children[%d].value = %s;' % (i, json.dumps(v))
-
-    script += 'document.body.appendChild(container);'
-    script += 'container.children[0].submit();'
-    return '(function(){ ' + script + '; })();'
 
 
 def navigate(driver, url):
@@ -54,20 +30,37 @@ def navigate(driver, url):
     if not postdata:
         driver.get(href)
     else:
-        driver.execute_script(get_post_js(href, postdata))
+        driver.execute_script(js.get_post(href, postdata))
+    driver.execute_script(js.pageLoadObserver)
+    driver.execute_script(js.pageChangingObserver)
 
+def wait_until_loaded(driver):
+    """
+    Determine that a page has been loaded.
+    """
+    inital_timeout = 0
+    while inital_timeout < 40:
+        inital_timeout += 1
+        if driver.execute_script(js.isPageLoaded()) or \
+            driver.execute_script(js.isPageChanging(250)):
+            break
+        else:
+            time.sleep(0.25)
+    if inital_timeout == 40:
+        raise exc.PlaybackTimeout(
+            'Timed out while waiting for the initial load.'
+        )
 
 def rerecord(driver, settings, record): # pylint: disable=W0621
     """
-    Rerecord a given test
+    Rerecord a given test. :func:`.playback` handles it based on mode.
     """
     return playback(driver, settings, record)
 
 
 def _process_steps(steps, events, start_time):
     """
-    process events from the user agent into our objects
-    todo: combine multiple scroll events?
+    Process events from the user agent into our objects.
     """
     for (timestamp, action, params) in events:
         if action == 'click':
@@ -75,7 +68,6 @@ def _process_steps(steps, events, start_time):
                 Click(timestamp - start_time, Point(*params))
             )
         elif action == 'keyup':
-            util.log.debug('keyup: %r', params)
             steps.append(
                 Key(
                     timestamp - start_time,
@@ -102,6 +94,7 @@ def _process_steps(steps, events, start_time):
                 continue
             else:
                 # tab keyup carries the element of the new field, so go back one
+                # first keyup a tab could blow up
                 step = step if step.key != '\t' else steps[i-1]
                 merges.append(
                     Text(
@@ -124,7 +117,6 @@ def _process_steps(steps, events, start_time):
         filter(_filter_steps, steps + merges), # pylint: disable=W0141
         key=operator.attrgetter('offset_time')
     )
-    util.log.debug('filtered steps: %r', steps)
     return steps
 
 def _begin_browsing(driver, settings):
@@ -155,21 +147,36 @@ def _begin_browsing(driver, settings):
             )
         raise
 
+def has_page_changed(url, driver_url):
+    """
+    Has the page's URL changed? Exclude everything after a hash.
+    """
+    return url[0:(url.find('#') if url.find('#') > 0 else len(url))] != \
+        driver_url[0:(driver_url.find('#') if driver_url.find('#') > 0 else len(driver_url))]
 
 def record(driver, settings):
     """
     Record a given test.
     """
     _begin_browsing(driver, settings)
-    start_time = driver.execute_script(js.now)
     driver.execute_script(js.getHuxleyEvents)
-    driver.execute_script(js.pageChangingObserver)
-
+    start_time = driver.execute_script(js.now)
+    url = settings.url
     steps = []
+    navs = []
     while True:
         if util.prompt("\nPress enter to take a screenshot, "
             "or type Q if you're done.", ('Q', 'q'), testname=settings.name):
             break
+        # detect page changes
+        if has_page_changed(url, driver.current_url):
+            navs.append(
+                Navigate(
+                    driver.execute_script(js.now) - start_time,
+                    driver.current_url
+                )
+            )
+            url = driver.current_url
         sys.stdout.write('Taking screenshot ... ')
         sys.stdout.flush()
         screenshot_step = Screenshot(
@@ -184,7 +191,7 @@ def record(driver, settings):
         )
     if len(steps) == 0:
         raise exc.NoScreenshotsRecorded(
-            'No screenshots recorded for %s--please use at least one' % \
+            'No screenshots recorded for %s--please use at least one\n' % \
                 settings.name
         )
 
@@ -204,9 +211,9 @@ def record(driver, settings):
         raise exc.TestError('Event-capturing script was unresponsive.')
 
     record = Test( # pylint: disable=W0621
-        browser = settings.browser,
-        screensize = settings.screensize,
-        steps = _process_steps(steps, events, start_time)
+        version = DATA_VERSION,
+        settings = settings,
+        steps = _process_steps(steps + navs, events, start_time)
     )
 
     util.prompt(
@@ -220,36 +227,33 @@ def record(driver, settings):
     return record
 
 
-def playback(driver, settings, record): # pylint: disable=W0621
+def playback(driver, settings, record): # pylint: disable=W0621,R0912
     """
     Playback a given test.
     """
     if settings.desc:
-        sys.stdout.write('%s ... ' % settings.desc)
+        sys.stdout.write("%s ... " % settings.desc)
     else:
-        sys.stdout.write('Playing back %s ... ' % settings.name) # todo huxleyfile.name
+        sys.stdout.write("Playing back %s ... " % settings.name)
     sys.stdout.flush()
 
     _begin_browsing(driver, settings)
-    driver.execute_script(js.pageChangingObserver)
-
-    time.sleep(2.5) # todo, initial load
+    wait_until_loaded(driver)
 
     state = states.OK
     err = None
     try:
         for step in record.steps:
-
             step.delayer(driver)
-
             timeout = 0
-            while timeout < 150:
+            while timeout < 40:
+                timeout += 1
                 if not driver.execute_script(js.isPageChanging(250)): # milliseconds
                     step.execute(driver, settings)
                     break
                 else:
-                    timeout += 1
-            if timeout == 150:
+                    time.sleep(0.25)
+            if timeout == 40:
                 raise exc.PlaybackTimeout(
                     '%s timed out while waiting for the page to be static.' \
                         % settings.name
@@ -257,11 +261,12 @@ def playback(driver, settings, record): # pylint: disable=W0621
 
     except Exception as err: # pylint: disable=W0703
         state = states.ERROR
-        if err.msg and err.msg.startswith('element not visible'):
+        if hasattr(err, 'msg') and err.msg.startswith('element not visible'):
             err = exc.ElementNotVisible(
                 "Element was not visible when expected during playback. If "
                 "your playback depended on a significant rerender having been "
-                "done, try recording a bit slower."
+                "done, then make sure you've waited until nothing is changing "
+                "before taking a screenshot."
             )
 
     sys.stdout.write('%s\n' % str(state))

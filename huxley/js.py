@@ -6,19 +6,81 @@ JavaScript to be executed in the testing user agent.
 # Licensed under the Apache License, Version 2.0
 # https://www.apache.org/licenses/LICENSE-2.0
 
+import json
+
+def isPageChanging(timeout):
+    """
+    Has page changed within the given `timeout`, in milliseconds, and are
+    there no XMLHTTP requests active?
+    """
+    return """
+return window._huxleyIsPageChanging(%s);
+""" % timeout
+
+
+def isPageLoaded():
+    """
+    Is the page loaded? Indicated by an event listener on `load`.
+    """
+    return """
+return window._huxleyLoaded == true;
+"""
+
+
+def get_post(url, postdata):
+    """
+    Retrieve data for navigate.
+    """
+    markup = '\n'.join([
+        '<form method="post" action="%s">' % url,
+        '\n'.join(['<input type="hidden" name="%s" />' % k for k in postdata.keys()]),
+        '</form>'
+    ])
+
+    script = 'var container = document.createElement("div"); container.innerHTML = %s;' \
+            % json.dumps(markup)
+
+    for (i, v) in enumerate(postdata.values()):
+        if not isinstance(v, basestring):
+            v = json.dumps(v)
+        script += 'container.children[0].children[%d].value = %s;' % (i, json.dumps(v))
+
+    script += 'document.body.appendChild(container);'
+    script += 'container.children[0].submit();'
+    return '(function(){ ' + script + '; })();'
+
 now = """
 return Date.now();
 """
 
-# todo work around IE < 11 not supporting MutationObserver..
-# back to DOM Mutation Events?
+pageLoadObserver = """
+(function() {
+    window._huxleyLoaded = false;
+    window.addEventListener("DOMContentLoaded", function() {window._huxleyLoaded = true; }, false)
+})(window);
+"""
+
+# https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
 pageChangingObserver = """
 (function() {
-    window._huxleyLastModified = Date.now()
-    window._huxleyIsPageChanging = function(timeout) {
-        return timeout > ( Date.now() - window._huxleyLastModified );
+    window._huxleyLastModified = Date.now();
+    var _XMLHttpRequest = XMLHttpRequest.prototype.open;;
+    window._huxleyXMLHTTPs = 0;
+    XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
+        window._huxleyXMLHTTPs++;
+        this.addEventListener("readystatechange", function() {
+            if (this.readyState == 4) {
+                window._huxleyXMLHTTPs--;
+            }
+        }, false);
+        _XMLHttpRequest.call(this, method, url, async, user, pass);
     }
-
+})(XMLHttpRequest);
+(function() {
+    window._huxleyIsPageChanging = function(timeout) {
+        return timeout > ( Date.now() - window._huxleyLastModified ) &&
+            window._huxleyXMLHTTPs == 0;
+    }
     var observer = new MutationObserver(
         function(mutations) {
             window._huxleyLastModified = Date.now();
@@ -28,51 +90,15 @@ pageChangingObserver = """
 })();
 """
 
-def isPageChanging(timeout):
-    """
-    Has page changed within the given `timeout`, in milliseconds?
-    """
-    return """
-return window._huxleyIsPageChanging(%s);
-""" % timeout
-
-listenForKeyEvents = """
-(function() {
-    var keyPresses = [];
-    window.addEventListener(
-        'keyup',
-        function (e) {
-            keyPresses.push([
-                Date.now(),
-                'keyup', [
-                    e.target.id,
-                    e.target.className,
-                    e.target.classList
-                ]
-            ]);
-        },
-        true
-    );
-    window._getKeyEvents = function(timestamp) {
-        var result = [];
-        keyPresses.forEach(
-            function(press) {
-                if ( press[0] > timestamp ) {
-                    result.push(press)
-                }
-            })
-        return result;
-    }
-})();
-"""
-
 getHuxleyEvents = """
 (function() {
     var events = [];
 
     window.addEventListener(
         'click',
-        function (e) { events.push([Date.now(), 'click', [e.clientX, e.clientY]]); },
+        function (e) {
+            events.push([Date.now(), 'click', [e.clientX, e.clientY]]);
+        },
         true
     );
     window.addEventListener(
@@ -99,7 +125,9 @@ getHuxleyEvents = """
     );
     window.addEventListener(
         'scroll',
-        function(e) { events.push([Date.now(), 'scroll', [this.pageXOffset, this.pageYOffset]]); },
+        function(e) {
+            events.push([Date.now(), 'scroll', [this.pageXOffset, this.pageYOffset]]);
+        },
         true
     );
 

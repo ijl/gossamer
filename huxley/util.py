@@ -9,7 +9,7 @@ Utilities.
 import os
 import sys
 import json
-import jsonpickle # pylint: disable=F0401
+import operator
 import ConfigParser
 from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
 from urllib2 import URLError
@@ -19,7 +19,7 @@ from selenium import webdriver  # pylint: disable=F0401
 from huxley import exc
 
 from huxley.constant import modes, exits, \
-    DEFAULT_DIFFCOLOR, REMOTE_WEBDRIVER_URL
+    DEFAULT_DIFFCOLOR, REMOTE_WEBDRIVER_URL, DATA_VERSION
 
 def logger(name, level=None):
     """
@@ -48,6 +48,41 @@ CAPABILITIES = {
     'opera': webdriver.DesiredCapabilities.OPERA
 }
 
+
+class Encoder(json.JSONEncoder):
+    """
+    Overriden JSON encoder for calling __json__.
+    """
+
+    def default(self, obj): # pylint: disable=E0202
+        """
+        Test and steps implement a __json__ attribute.
+        """
+        if hasattr(obj, '__json__'):
+            return obj.__json__()
+        return json.JSONEncoder.default(self, obj)
+
+def import_recorded_run(inc):
+    """
+    Given a JSON object, create our objects.
+    """
+    from huxley.data import Test
+    from huxley import step
+    for _, rec in inc.items(): # 1-element list
+        if rec['version'] != 1:
+            raise NotImplementedError()
+        steps = []
+        for each in rec['steps']:
+            key, val = each.items()[0]
+            steps.append(getattr(step, key)(**val))
+        steps = sorted(steps, operator.attrgetter('offset_time'))
+        test = Test(
+            version=rec['version'],
+            settings=rec['settings'],
+            steps=steps
+        )
+    return test
+
 def read_recorded_run(filename):
     """
     Load a serialized run.
@@ -57,14 +92,12 @@ def read_recorded_run(filename):
             raise exc.RecordedRunEmpty('%s is empty' % filename)
     except OSError:
         raise exc.RecordedRunDoesNotExist('%s does not exist' % filename)
-    try:
-        with open(filename, 'r') as fp:
-            recorded_run = jsonpickle.decode(fp.read())
-        if recorded_run.version != 1:
-            raise NotImplementedError()
-        return recorded_run
-    except ValueError: # couldn't parse
-        raise exc.CouldNotParseRecordedRun('Could not parse %s' % filename)
+    with open(filename, 'r') as fp:
+        try:
+            rec = json.loads(fp.read())
+        except ValueError: # couldn't parse
+            raise exc.CouldNotParseRecordedRun('Could not parse %s' % filename)
+    return import_recorded_run(rec)
 
 
 def write_recorded_run(filename, output):
@@ -73,12 +106,8 @@ def write_recorded_run(filename, output):
     """
     try:
         with open(os.path.join(filename, 'record.json'), 'w') as fp:
-            fp.write(
-                jsonpickle.encode(
-                    output
-                )
-            ) # todo version the recorded run, and validate it
-    except Exception as exception: # todo how can this fail
+            fp.write(json.dumps(output, cls=Encoder))
+    except Exception as exception: # todo
         raise exception
     return True
 
@@ -150,7 +179,7 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
     Prepare directories on file system, including clearing existing data
     if necessary.
     """
-    log.debug(filename)
+    log.debug('%s: %s', testname, filename)
     if os.path.exists(filename):
         if mode == modes.RECORD: # todo weirdness with rerecord
             if os.path.getsize(filename) > 0:
@@ -185,7 +214,7 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
     options as found on the CLI interface, make tests for use by the
     dispatcher.
     """
-    from huxley.data import Settings, TestRun
+    from huxley.data import Settings, Test
 
     postdata = _postdata(kwargs.pop('postdata', {}))
     diffcolor = tuple(
@@ -277,7 +306,7 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
                 cookies=cookies
             )
 
-            tests[testname] = TestRun(settings, recorded_run)
+            tests[testname] = Test(version=DATA_VERSION, settings=settings, steps=recorded_run)
 
     return tests
 

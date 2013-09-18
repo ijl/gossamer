@@ -10,8 +10,10 @@ Tests can be setup through the command-line interface via
 # Licensed under the Apache License, Version 2.0
 # https://www.apache.org/licenses/LICENSE-2.0
 
+from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
+
 from huxley.constant import modes, states
-from huxley import run, util, exc
+from huxley import run, exc, util
 
 
 def dispatch(driver, mode, tests, stop_on_error=False):
@@ -22,8 +24,8 @@ def dispatch(driver, mode, tests, stop_on_error=False):
     """
     funcs = {
         modes.RECORD: (run.record, lambda x: (x.settings, )),
-        modes.RERECORD: (run.rerecord, lambda x: (x.settings, x.recorded_run)),
-        modes.PLAYBACK: (run.playback, lambda x: (x.settings, x.recorded_run))
+        modes.RERECORD: (run.rerecord, lambda x: (x.settings, x.steps)),
+        modes.PLAYBACK: (run.playback, lambda x: (x.settings, x.steps))
     }
     run_log = {name: None for name, _ in tests.iteritems()}
     try:
@@ -32,8 +34,11 @@ def dispatch(driver, mode, tests, stop_on_error=False):
             if not output or output in (states.FAIL, states.ERROR) and stop_on_error:
                 break
             run_log[name] = output
-            if mode in (modes.RECORD, modes.RERECORD):
+            if mode == modes.RECORD:
                 util.write_recorded_run(test.settings.path, output)
     except exc.NoScreenshotsRecorded:
         raise
+    except WebDriverException as err:
+        if 'not reachable' in err.msg:
+            raise exc.WebDriverWentAway('WebDriver cannot be reached.')
     return run_log

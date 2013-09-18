@@ -32,9 +32,30 @@ class TestStep(object): # pylint: disable=R0903
 
     def execute(self, driver, settings):
         """
-        Called during :func:`.run.playback`.
+        Called during :func:`.run.playback` or :func:`.run.rerecord`.
         """
         raise NotImplementedError
+
+    def __json__(self):
+        return {self.__class__.__name__: self.__dict__}
+
+
+class Navigate(TestStep): # pylint: disable=R0903
+    """
+    Navigation to a new page.
+    """
+    playback = True
+
+    def __init__(self, offset_time, url):
+        super(Navigate, self).__init__(offset_time)
+        self.url = url
+
+    def execute(self, driver, settings):
+        from huxley.run import navigate, wait_until_loaded
+        util.log.debug('Navigating to %s', self.url)
+        navigate(driver, (self.url, None))
+        wait_until_loaded(driver)
+
 
 
 class Click(TestStep): # pylint: disable=R0903
@@ -139,9 +160,9 @@ class Screenshot(TestStep):
 
     playback = True
 
-    def __init__(self, offset_time, index):
+    def __init__(self, offset_time, num):
         super(Screenshot, self).__init__(offset_time)
-        self.index = index
+        self.num = num
 
     def delayer(self, driver):
         """
@@ -153,12 +174,12 @@ class Screenshot(TestStep):
         """
         Path to screenshot.
         """
-        return os.path.join(settings.path, 'screenshot' + str(self.index) + '.png')
+        return os.path.join(settings.path, 'screenshot' + str(self.num) + '.png')
 
     def execute(self, driver, settings):
-        util.log.debug("Taking screenshot %s", self.index)
+        util.log.debug("Taking screenshot %s", self.num)
         original = self.get_path(settings)
-        new = os.path.join(settings.path, 'last', 'screenshot%s.png' % self.index)
+        new = os.path.join(settings.path, 'last', 'screenshot%s.png' % self.num)
         if settings.mode == modes.RERECORD:
             driver.save_screenshot(original)
         else:
@@ -170,17 +191,19 @@ class Screenshot(TestStep):
                     raise TestError(
                         'Screenshot %s was different; compare %s with %s. See %s '
                         'for the comparison. diff=%r' % (
-                            self.index, original, new, diffpath, diff
+                            self.num, original, new, diffpath, diff
                         )
                     )
                 else:
-                    raise TestError('Screenshot %s was different.' % self.index)
+                    raise TestError('Screenshot %s was different.' % self.num)
 
 
 class Scroll(TestStep): # pylint: disable=R0903
     """
     Scrolling action on the page.
     """
+
+    playback = True
 
     def __init__(self, offset_time, pos):
         super(Scroll, self).__init__(offset_time)

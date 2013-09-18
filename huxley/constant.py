@@ -22,6 +22,8 @@ DEFAULT_DIFFCOLOR = '0,255,0'
 DEFAULT_SCREENSIZE = '1024x768'
 DEFAULT_BROWSER = 'firefox'
 
+DATA_VERSION = 1
+
 class _TestRunModes(object): # pylint: disable=R0903
     """
     Indicates what a given test run should be doing, e.g., recording.
