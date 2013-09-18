@@ -1,5 +1,4 @@
 *~
-Huxley.egg-info
 *.pyc
 build/
 dist/
@@ -7,3 +6,6 @@ dist/
 venv
 .venv
 .coverage
+*.egg-info
+*.egg
+selenium
