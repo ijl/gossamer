@@ -136,7 +136,7 @@ def get_driver(browser, local_webdriver=None, remote_webdriver=None):
             'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
         )
     except URLError as exception:
-        raise exc.WebDriverRefusedConnection(
+        raise exc.WebDriverConnectionFailed(
             'We cannot connect to the WebDriver %s -- is it running?' % driver_url
         )
     except WebDriverException as exception:

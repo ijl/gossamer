@@ -78,7 +78,7 @@ class ElementNotVisible(Exception):
     was being hidden/unhidden or rendered.
     """
 
-class WebDriverRefusedConnection(Exception):
+class WebDriverConnectionFailed(Exception):
     """
     Cannot connect to the webdriver--is it running?
     """

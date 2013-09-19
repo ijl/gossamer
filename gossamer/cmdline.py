@@ -187,6 +187,10 @@ def initialize(
 
     try:
         driver = util.get_driver(browser, local, remote)
+        if not driver:
+            raise exc.WebDriverConnectionFailed(
+            'We cannot connect to the WebDriver %s -- is it running?' % local
+        )
         # run the tests
         try:
             logs = dispatch(driver, mode, tests)

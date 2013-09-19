@@ -18,15 +18,6 @@ return window._gossamerIsPageChanging(%s);
 """ % timeout
 
 
-def isPageLoaded(): # pragma: no cover
-    """
-    Is the page loaded? Indicated by an event listener on `load`.
-    """
-    return """
-return window._gossamerLoaded == true;
-"""
-
-
 def get_post(url, postdata): # pragma: no cover
     """
     Retrieve data for navigate.

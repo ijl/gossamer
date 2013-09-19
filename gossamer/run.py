@@ -50,8 +50,7 @@ def wait_until_loaded(driver):
     initial_timeout = 0
     while initial_timeout < 40:
         initial_timeout += 1
-        if driver.execute_script(js.isPageLoaded()) or \
-            driver.execute_script(js.isPageChanging(250)):
+        if not driver.execute_script(js.isPageChanging(500)):
             break
         else:
             time.sleep(0.25)
