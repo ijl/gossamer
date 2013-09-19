@@ -12,7 +12,7 @@ import time
 
 from gossamer.constant import modes
 from gossamer.exc import TestError
-from gossamer.images import images_identical, image_diff
+from gossamer.image import images_identical, image_diff, allowance
 from gossamer import util
 
 
@@ -184,7 +184,7 @@ class Screenshot(TestStep):
             driver.save_screenshot(original)
         else:
             driver.save_screenshot(new)
-            if not images_identical(original, new):
+            if not images_identical(original, new, allowance(settings.browser)):
                 if settings.save_diff:
                     diffpath = os.path.join(settings.path, 'diff.png')
                     diff = image_diff(original, new, diffpath, settings.diffcolor)

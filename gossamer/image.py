@@ -22,15 +22,29 @@ except ImportError: # pragma: no cover
 
 from gossamer import util, exc
 
+def allowance(browser):
+    """
+    Our image diffs below give some false alarms of diffs. For the browser
+    Chrome, which takes screenshots limited to screensize, a value of at least
+    573 is always seen. For Firefox, which takes screenshots the width of
+    the actual screensize and the height of the document, 958.
+    """
+    margins = {'default': 573, 'chrome': 573, 'firefox': 958}
+    try:
+        return margins[browser]
+    except KeyError:
+        return margins['default']
 
-def images_identical(path1, path2):
+
+def images_identical(path1, path2, margin=None):
     """
     Hacky test of images being identical. PIL can show incorrect diffs.
     """
+    margin = margin or 0
     im1 = Image.open(path1)
     im2 = Image.open(path2)
     rmsdiff = _rmsdiff_2011(im1, im2)
-    if rmsdiff <= 573:
+    if rmsdiff <= margin:
         return True
     else:
         return False
@@ -45,8 +59,6 @@ def image_diff(path1, path2, outpath, diffcolor):
     im2 = Image.open(path2)
 
     rmsdiff = _rmsdiff_2011(im1, im2)
-    util.log.debug('rmsdiff: %s', rmsdiff)
-    # rmsdiff = 0 if rmsdiff < 573 else rmsdiff
 
     pix1 = im1.load()
     pix2 = im2.load()
