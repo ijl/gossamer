@@ -37,7 +37,7 @@ def run_gossamerfile(
             'runTest',
             _nose_wrapper(case, key, test, test.settings.browser, local, remote)
         )
-        case.runTest.__func__.__doc__ = test.settings.desc or test.settings.name
+        case.runTest.__func__.__doc__ = test.settings.desc or test.settings.name # pylint: disable=E1101,C0301
         client_locals['GossamerTest_%s' % key] = case
     return True
 
@@ -63,10 +63,7 @@ def _run_nose(self, name, test, browser, local, remote): # pylint: disable=R0913
         elif result == states.ERROR:
             raise exc.TestError() # todo
     finally:
-        try:
-            driver.quit()
-        except UnboundLocalError: # pragma: no cover
-            pass
+        util.close_driver(driver or None)
 
 
 class GossamerTestCase(unittest.TestCase): # pylint: disable=R0904

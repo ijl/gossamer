@@ -222,10 +222,7 @@ def initialize(
                 return exits.OK
         return exits.OK
     finally:
-        try:
-            driver.quit()
-        except UnboundLocalError: # pragma: no cover
-            pass
+        util.close_driver(driver or None)
 
 
 def main():

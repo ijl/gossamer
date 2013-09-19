@@ -6,7 +6,6 @@ Record, playback, &c a given test.
 # Licensed under the Apache License, Version 2.0
 # https://www.apache.org/licenses/LICENSE-2.0
 
-import sys
 import operator
 import time
 

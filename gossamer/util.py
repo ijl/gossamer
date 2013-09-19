@@ -171,6 +171,18 @@ def get_driver(browser, local_webdriver=None, remote_webdriver=None):
     return driver
 
 
+def close_driver(driver):
+    """
+    Close the driver, or fail silently if it doesn't exist.
+    """
+    try:
+        driver.quit()
+    except UnboundLocalError: # pragma: no cover
+        pass
+    except AttributeError: # pragma: no cover
+        pass
+    return True
+
 def prompt(display, options=None, testname=None):
     """
     Given text as `display` and optionally `options` as an
@@ -315,7 +327,6 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
                         "so aborting. Please re-record."
                     )
                 browser = kw_browser if kw_browser is not None else sa_browser
-
 
                 recorded_run = None
                 settings = Settings(
