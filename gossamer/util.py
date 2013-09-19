@@ -34,6 +34,25 @@ def logger(name, level=None):
 # level can be overriden to DEBUG in CLI with -v
 log = logger(__name__, 'INFO')
 
+
+def stdout_writer(content=None, flush=False):
+    """
+    Write to stdout. Pluggable in :func:`main.dispatch` for suppressing
+    output.
+    """
+    if content:
+        sys.stdout.write(content)
+    if flush:
+        sys.stdout.flush()
+
+
+def null_writer(content=None, flush=False): # pylint: disable=W0613
+    """
+    No output written.
+    """
+    pass
+
+
 DRIVERS = {
     'firefox': webdriver.Firefox,
     'chrome': webdriver.Chrome,

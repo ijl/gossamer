@@ -16,12 +16,14 @@ from gossamer.constant import modes, states
 from gossamer import run, exc, util
 
 
-def dispatch(driver, mode, tests, stop_on_error=False):
+def dispatch(driver, mode, tests, output=None, stop_on_error=False):
     """
     Given driver and a list of tests, dispatch the appropriate runs and
     return an exit code. For consumption by the CLI and unittest
     integration.
     """
+    if not output:
+        output = util.stdout_writer
     funcs = {
         modes.RECORD: (run.record, lambda x: (x.settings, )),
         modes.RERECORD: (run.rerecord, lambda x: (x.settings, x.steps)),
@@ -30,7 +32,7 @@ def dispatch(driver, mode, tests, stop_on_error=False):
     run_log = {name: None for name, _ in tests.iteritems()}
     try:
         for name, test in tests.iteritems():
-            output = funcs[mode][0](driver, *funcs[mode][1](test))
+            output = funcs[mode][0](driver, *funcs[mode][1](test), output=output)
             if (not output or output in (states.FAIL, states.ERROR)) and stop_on_error:
                 break
             run_log[name] = output

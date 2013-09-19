@@ -9,7 +9,7 @@ This tool allows you to create visual regression tests by browsing normally and 
 * Allows navigating to new pages
 * Records your clicks and text input
 * During playback, waits for the page to be stable before taking further actions, rather than deciding on the basis of time elapsed
-* Tests can be run alongside your other Python `unittest` tests. Create a `unittest.TestCase` from a test file by with `run_gossamerfile(<filename>)`
+* Tests can be run alongside your other Python `unittest` tests. Populate a module with a `unittest.TestCase` for each test within a testfile by calling `run_gossamerfile(locals(), <filename>, <data_dir>)`.
 * Configurable browser, data directories, and settings
 * Data is exported and read on every run as regular JSON files and PNGs
 

@@ -168,7 +168,7 @@ def _has_page_changed(url, driver_url):
         .rstrip('/')
 
 
-def record(driver, settings):
+def record(driver, settings, output):
     """
     Record a given test.
     """
@@ -191,15 +191,14 @@ def record(driver, settings):
             )
             url = driver.current_url
             _load_initial_js(driver)
-        sys.stdout.write('Taking screenshot ... ')
-        sys.stdout.flush()
+        output('Taking screenshot ... ', flush=True)
         screenshot_step = Screenshot(
             driver.execute_script(js.now) - start_time,
             len(steps) + 1
         )
         driver.save_screenshot(screenshot_step.get_path(settings))
         steps.append(screenshot_step)
-        sys.stdout.write(
+        output(
             '%d screenshot%s in test.\n' % \
             (len(steps), 's' if len(steps) > 1 else '')
         )
@@ -228,27 +227,27 @@ def record(driver, settings):
         "ensure they \nare pixel-perfect when running automated. Press "
         "enter to start.", testname=settings.name
     )
-    playback(driver, settings, record)
+    playback(driver, settings, record, output)
 
     return record
 
 
-def rerecord(driver, settings, record): # pylint: disable=W0621
+def rerecord(driver, settings, record, output): # pylint: disable=W0621
     """
     Rerecord a given test. :func:`.playback` handles it based on mode.
     """
-    return playback(driver, settings, record)
+    return playback(driver, settings, record, output)
 
 
-def playback(driver, settings, record): # pylint: disable=W0621,R0912
+def playback(driver, settings, record, output): # pylint: disable=W0621,R0912
     """
     Playback a given test.
     """
     if settings.desc:
-        sys.stdout.write("%s ... " % settings.desc)
+        output("%s ... " % settings.desc, flush=True)
     else:
-        sys.stdout.write("Playing back %s ... " % settings.name)
-    sys.stdout.flush()
+        output("Playing back %s ... " % settings.name, flush=True)
+
 
     _begin_browsing(driver, settings)
     wait_until_loaded(driver)
@@ -282,9 +281,9 @@ def playback(driver, settings, record): # pylint: disable=W0621,R0912
                 "before taking a screenshot."
             )
 
-    sys.stdout.write('%s\n' % str(state))
+    output('%s\n' % str(state))
     if err:
-        sys.stdout.write('%s\n' % str(err))
-    sys.stdout.flush()
+        output('%s\n' % str(err))
+    output(flush=True)
     return state
 

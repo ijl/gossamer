@@ -92,14 +92,16 @@ class TestIntegration(unittest.TestCase): # pylint: disable=R0904
             for test in tests:
                 dirname = os.path.join('/tmp/', test)
                 shutil.copytree(os.path.join(test_dir, test), dirname)
-            cls = integration.run_gossamerfile(
+            integration.run_gossamerfile(
+                locals(),
                 gossamerfile,
                 '/tmp',
                 browser='chrome'
             )
-            self.assertTrue(cls == integration.GossamerTestCase)
-            self.assertTrue(hasattr(cls, 'test_example'))
-            self.assertTrue(hasattr(cls, 'test_mdn'))
+            self.assertTrue('GossamerTest_example' in locals())
+            self.assertTrue('GossamerTest_mdn' in locals())
+            for cls in (locals()['GossamerTest_example'], locals()['GossamerTest_mdn']):
+                self.assertTrue(cls == integration.GossamerTestCase)
         finally:
             try:
                 shutil.rmtree('/tmp/example')
