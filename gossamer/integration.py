@@ -9,8 +9,7 @@ Integrate with unittest.
 import unittest
 
 from gossamer.main import dispatch
-from gossamer.constant import modes, states, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL, \
-    DEFAULT_BROWSER
+from gossamer.constant import modes, states, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL
 from gossamer import util, exc
 
 
@@ -24,7 +23,6 @@ def run_gossamerfile(
     if isinstance(gossamerfile, (str, unicode)):
         gossamerfile = [gossamerfile]
 
-    browser = browser or DEFAULT_BROWSER
     local = local or LOCAL_WEBDRIVER_URL
     remote = remote or REMOTE_WEBDRIVER_URL
 
@@ -65,7 +63,10 @@ def _run_nose(self, name, test, browser, local, remote): # pylint: disable=R0913
         elif result == states.ERROR:
             raise exc.TestError() # todo
     finally:
-        driver.quit()
+        try:
+            driver.quit()
+        except UnboundLocalError: # pragma: no cover
+            pass
 
 
 class GossamerTestCase(unittest.TestCase): # pylint: disable=R0904

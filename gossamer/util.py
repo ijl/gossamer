@@ -87,6 +87,7 @@ def import_recorded_run(inc):
     """
     from gossamer.data import Test, Settings, Point
     from gossamer import step
+    mode_trans = {1: modes.RECORD, 2: modes.RERECORD, 3: modes.PLAYBACK}
     for _, rec in inc.items(): # 1-element list
         if rec['version'] != 1:
             raise NotImplementedError()
@@ -96,9 +97,9 @@ def import_recorded_run(inc):
             if 'pos' in val:
                 val['pos'] = Point(**val['pos'])
             steps.append(getattr(step, key)(**val))
-        for key, val in rec['settings']:
+        for key, val in rec['settings'].items():
             if key == 'mode':
-                rec['settings'][key] = getattr(modes, val)
+                rec['settings'][key] = mode_trans[val]
         steps = sorted(steps, key=operator.attrgetter('offset_time'))
         test = Test(
             version=rec['version'],
@@ -235,7 +236,8 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
             raise exc.EmptyPath('%s does not exist\n' % filename)
     return True
 
-def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disable=R0914,R0912
+
+def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disable=R0914,R0912,R0915
     """
     Given a list of gossamer test files, a mode, working directory, and
     options as found on the CLI interface, make tests for use by the
@@ -271,29 +273,6 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
 
             test_config = dict(config.items(testname))
 
-            url = test_config.get('url', None)
-            if not url:
-                raise exc.InvalidGossamerfile(
-                    '%s did not have a `url` argument' % testname
-                )
-
-            cookies = test_config.get('cookies', None)
-            if cookies and len(cookies) > 0:
-                cookies = json.loads(cookies)
-            else:
-                cookies = None
-
-            browser = test_config.get('browser', None)
-            if browser:
-                if kwargs['browser'] != browser:
-                    raise exc.DifferentBrowser(
-                        "Different browser given in command-line than "
-                        "is on recorded run. Screenshots may not match, "
-                        "so aborting. Please re-record."
-                    )
-            if kwargs['browser']:
-                browser = kwargs['browser']
-
             default_filename = os.path.join(
                 data_dir,
                 testname
@@ -307,6 +286,57 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
                     raise ValueError('relative filename and no cwd')
                 filename = os.path.join(cwd, filename)
 
+            if mode != modes.PLAYBACK:
+
+                url = test_config.get('url', None)
+                if not url:
+                    raise exc.InvalidGossamerfile(
+                        '%s did not have a `url` argument' % testname
+                    )
+
+                cookies = test_config.get('cookies', None)
+                if cookies and len(cookies) > 0:
+                    cookies = json.loads(cookies)
+                else:
+                    cookies = None
+
+                screensize = tuple(
+                    int(x) for x in
+                        (kwargs.pop('screensize', None) or \
+                        test_config.get('screensize', '1024x768')
+                ).split('x'))
+
+                sa_browser = test_config.get('browser', None)
+                kw_browser = kwargs.get('browser', None)
+                if sa_browser and kw_browser and sa_browser != kw_browser:
+                    raise exc.DifferentBrowser(
+                        "Different browser given in command-line than "
+                        "is on recorded run. Screenshots may not match, "
+                        "so aborting. Please re-record."
+                    )
+                browser = kw_browser if kw_browser is not None else sa_browser
+
+
+                recorded_run = None
+                settings = Settings(
+                    name=testname,
+                    desc=test_config.get('desc', None),
+                    url=url,
+                    mode=mode,
+                    path=filename,
+                    browser=browser,
+                    screensize=screensize,
+                    postdata=postdata or test_config.get('postdata'),
+                    diffcolor=diffcolor,
+                    save_diff=kwargs.pop('save_diff', None),
+                    cookies=cookies
+                )
+
+            else:
+                recorded_run = read_recorded_run(os.path.join(filename, 'record.json'))
+                settings = recorded_run.settings
+
+
             verify_and_prepare_files(filename, testname, mode, overwrite)
 
             # load recorded runs if appropriate
@@ -315,29 +345,8 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
             else:
                 recorded_run = None
 
-            screensize = tuple(
-                int(x) for x in
-                    (kwargs.pop('screensize', None) or \
-                    test_config.get('screensize', '1024x768')
-            ).split('x'))
-
-            settings = Settings(
-                name=testname,
-                desc=test_config.get('desc', None),
-                url=url,
-                mode=mode,
-                path=filename,
-                browser=browser,
-                screensize=screensize,
-                postdata=postdata or test_config.get('postdata'),
-                diffcolor=diffcolor,
-                save_diff=kwargs.pop('save_diff', None),
-                cookies=cookies
-            )
-
             tests[testname] = Test(version=DATA_VERSION, settings=settings, steps=recorded_run)
 
-    sys.stdout.write('%r' % existing_names)
     if names:
         for name in names:
             if name not in existing_names:
