@@ -30,6 +30,10 @@ class RecordedRunDoesNotExist(Exception):
     """
     A record.json file does not exist.
     """
+class UnknownTestName(Exception):
+    """
+    Test name given via CLI is not known from a file.
+    """
 
 class DoNotOverwrite(Exception):
     """

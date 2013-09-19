@@ -14,8 +14,8 @@ from gossamer.constant import modes, states, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIV
 from gossamer import util, exc
 
 
-def run_gossamerfile(client_locals,
-        gossamerfile, data_dir,
+def run_gossamerfile(
+        client_locals, gossamerfile, data_dir,
         browser=None, local=None, remote=None
     ): # pylint: disable=R0913
     """
@@ -42,7 +42,6 @@ def run_gossamerfile(client_locals,
         case.runTest.__func__.__doc__ = test.settings.desc or test.settings.name
         client_locals['GossamerTest_%s' % key] = case
     return True
-
 
 
 def _nose_wrapper(self, *args): # pylint: disable=W0613

@@ -11,7 +11,7 @@ import sys
 import json
 import operator
 import ConfigParser
-from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
+from selenium.common.exceptions import WebDriverException
 from urllib2 import URLError
 
 from selenium import webdriver  # pylint: disable=F0401
@@ -96,6 +96,9 @@ def import_recorded_run(inc):
             if 'pos' in val:
                 val['pos'] = Point(**val['pos'])
             steps.append(getattr(step, key)(**val))
+        for key, val in rec['settings']:
+            if key == 'mode':
+                rec['settings'][key] = getattr(modes, val)
         steps = sorted(steps, key=operator.attrgetter('offset_time'))
         test = Test(
             version=rec['version'],
@@ -248,6 +251,7 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
     tests = {}
     names = kwargs.pop('names', None)
     overwrite = kwargs.get('overwrite', False)
+    existing_names = []
 
     for file_name in test_files:
 
@@ -257,6 +261,7 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
         config.read([file_name])
 
         for testname in config.sections():
+            existing_names.append(testname)
 
             if names and (testname not in names):
                 continue
@@ -331,6 +336,15 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
             )
 
             tests[testname] = Test(version=DATA_VERSION, settings=settings, steps=recorded_run)
+
+    sys.stdout.write('%r' % existing_names)
+    if names:
+        for name in names:
+            if name not in existing_names:
+                raise exc.UnknownTestName(
+                    "'%s' is not in the parsed files. Valid options are: %r" % \
+                    (name, existing_names)
+                )
 
     return tests
 

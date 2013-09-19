@@ -10,7 +10,7 @@ Tests can be setup through the command-line interface via
 # Licensed under the Apache License, Version 2.0
 # https://www.apache.org/licenses/LICENSE-2.0
 
-from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
+from selenium.common.exceptions import WebDriverException
 
 from gossamer.constant import modes, states
 from gossamer import run, exc, util

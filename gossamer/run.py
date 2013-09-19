@@ -10,7 +10,7 @@ import sys
 import operator
 import time
 
-from selenium.common.exceptions import WebDriverException # pylint: disable=F0401
+from selenium.common.exceptions import WebDriverException
 
 from gossamer.constant import states, DATA_VERSION
 from gossamer.step import Screenshot, Click, Key, Scroll, Text, Navigate
