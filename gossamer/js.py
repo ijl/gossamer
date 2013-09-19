@@ -53,13 +53,6 @@ now = """
 return Date.now();
 """
 
-pageLoadObserver = """
-(function() {
-    window._gossamerLoaded = false;
-    window.addEventListener("DOMContentLoaded", function() {window._gossamerLoaded = true; }, false)
-})(window);
-"""
-
 # https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
 pageChangingObserver = """
 (function() {

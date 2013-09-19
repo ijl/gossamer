@@ -28,11 +28,18 @@ def run_gossamerfile(gossamerfile, data_dir, browser=None, local=None, remote=No
 
     tests = util.make_tests([gossamerfile], modes.PLAYBACK, data_dir, **options)
     for key, test in tests.items():
-        case.tests.append(run_nose(case, key, test, test.settings.browser, local, remote))
+        setattr(case, 'test_%s' % key,
+            _nose_wrapper(case, key, test, test.settings.browser, local, remote)
+        )
     return case
 
+def _nose_wrapper(*args): # pylint: disable=W0613
+    """
+    Creates GossamerTestCase methods that will themselves run the tests.
+    """
+    return lambda args: _run_nose(*args)
 
-def run_nose(self, name, test, browser, local, remote): # pylint: disable=R0913
+def _run_nose(self, name, test, browser, local, remote): # pylint: disable=R0913
     """
     Run a test for Nose.
     """
@@ -51,4 +58,3 @@ class GossamerTestCase(unittest.TestCase): # pylint: disable=R0904
     """
     unittest case.
     """
-    tests = []

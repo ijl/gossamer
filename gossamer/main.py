@@ -31,7 +31,7 @@ def dispatch(driver, mode, tests, stop_on_error=False):
     try:
         for name, test in tests.iteritems():
             output = funcs[mode][0](driver, *funcs[mode][1](test))
-            if not output or output in (states.FAIL, states.ERROR) and stop_on_error:
+            if (not output or output in (states.FAIL, states.ERROR)) and stop_on_error:
                 break
             run_log[name] = output
             if mode == modes.RECORD:

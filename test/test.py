@@ -7,10 +7,11 @@ Smoke tests. Needs to be improved.
 # https://www.apache.org/licenses/LICENSE-2.0
 
 import unittest
-from gossamer import util
+from gossamer import util, run, integration
 import json
 import pkg_resources
 import os
+import shutil
 
 
 class TestUtilities(unittest.TestCase): # pylint: disable=R0904
@@ -21,7 +22,7 @@ class TestUtilities(unittest.TestCase): # pylint: disable=R0904
     def setUp(self):
         super(TestUtilities, self).setUp()
         self.data = json.loads(
-            pkg_resources.resource_stream('test', 'test_data.json').read()
+            pkg_resources.resource_stream('test', 'data/record.json').read()
         )
 
     def test_read_run(self): # pylint: disable=R0201
@@ -39,3 +40,69 @@ class TestUtilities(unittest.TestCase): # pylint: disable=R0904
             util.write_recorded_run(filename, util.import_recorded_run(self.data))
         finally:
             os.unlink(os.path.join(filename, 'record.json'))
+
+
+class TestRun(unittest.TestCase): # pylint: disable=R0904
+    """
+    Run
+    """
+
+    def test_has_page_changed(self):
+        """
+        run._has_page_changed
+        """
+        self.assertEqual(run._has_page_changed( # pylint: disable=W0212
+            'http://www.example.com/', 'http://www.example.com/'
+            ), False
+        )
+        self.assertEqual(run._has_page_changed( # pylint: disable=W0212
+            'http://www.example.com/', 'http://www.example.com'
+            ), False
+        )
+        self.assertEqual(run._has_page_changed( # pylint: disable=W0212
+            'http://www.example.com/page1', 'http://www.example.com/page2'
+            ), True
+        )
+        self.assertEqual(run._has_page_changed( # pylint: disable=W0212
+            'http://www.example.com/page1', 'http://www.example.com/page2'
+            ), True
+        )
+        self.assertEqual(run._has_page_changed( # pylint: disable=W0212
+            'http://www.example.com/page1', 'http://www.example.com/page1?q=query'
+            ), True
+        )
+        self.assertEqual(run._has_page_changed( # pylint: disable=W0212
+            'http://www.example.com/#/page1', 'http://www.example.com/#/page2'
+            ), False
+        )
+
+class TestIntegration(unittest.TestCase): # pylint: disable=R0904
+    """
+    Integration
+    """
+
+    def test_run_gossamerfile(self):
+        """
+        integration.run_gossamerfile
+        """
+        test_dir = os.path.join(os.getcwd(), 'test', 'data')
+        gossamerfile = os.path.join(test_dir, 'Gossamerfile')
+        try:
+            tests = ['example', 'mdn']
+            for test in tests:
+                dirname = os.path.join('/tmp/', test)
+                shutil.copytree(os.path.join(test_dir, test), dirname)
+            cls = integration.run_gossamerfile(
+                gossamerfile,
+                '/tmp',
+                browser='chrome'
+            )
+            self.assertTrue(cls == integration.GossamerTestCase)
+            self.assertTrue(hasattr(cls, 'test_example'))
+            self.assertTrue(hasattr(cls, 'test_mdn'))
+        finally:
+            try:
+                shutil.rmtree('/tmp/example')
+                shutil.rmtree('/tmp/mdn')
+            except OSError:
+                pass

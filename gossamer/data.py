@@ -27,12 +27,10 @@ class Test(object): # pylint: disable=R0903
         }
 
     def __repr__(self): # pragma: no cover
-        return "%s: %r %r" % (
+        return "<%s %r>" % (
             self.__class__.__name__,
-            self.settings,
-            self.steps
+            self.settings.name
         )
-
 
 
 class Settings(object): # pylint: disable=R0903,R0902
@@ -67,7 +65,7 @@ class Settings(object): # pylint: disable=R0903,R0902
         return self.__dict__
 
     def __repr__(self): # pragma: no cover
-        return '%s: %r' % (self.__class__.__name__, self.__dict__)
+        return '<%s %r>' % (self.__class__.__name__, self.__dict__)
 
 
 class Point(object): # pylint: disable=R0903
@@ -79,7 +77,7 @@ class Point(object): # pylint: disable=R0903
         """
         Stores x and y coordinates. They cannot be negative.
         """
-        if x < 0 or y < 0:
+        if x < 0 or y < 0: # pragma: no cover
             raise ValueError(
                 'Coordinates [%s, %s] cannot be negative' % (x, y)
             )
@@ -90,4 +88,4 @@ class Point(object): # pylint: disable=R0903
         return self.__dict__
 
     def __repr__(self): # pragma: no cover
-        return ''.join(('[', str(self.x), ', ', str(self.y), ']'))
+        return '<Point %s, %s>' % (self.x, self.y)

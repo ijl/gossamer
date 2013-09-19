@@ -33,36 +33,32 @@ def navigate(driver, url):
         driver.execute_script(js.get_post(href, postdata))
     _load_initial_js(driver)
 
+
 def _load_initial_js(driver):
     """
-    Split for calling in :func:`.record` after a URL change.
+    Split from :func:`.navigate` for calling within :func:`.record`
+    after a URL change.
     """
     driver.execute_script(js.getGossamerEvents)
-    driver.execute_script(js.pageLoadObserver)
     driver.execute_script(js.pageChangingObserver)
+
 
 def wait_until_loaded(driver):
     """
     Determine that a page has been loaded.
     """
-    inital_timeout = 0
-    while inital_timeout < 40:
-        inital_timeout += 1
+    initial_timeout = 0
+    while initial_timeout < 40:
+        initial_timeout += 1
         if driver.execute_script(js.isPageLoaded()) or \
             driver.execute_script(js.isPageChanging(250)):
             break
         else:
             time.sleep(0.25)
-    if inital_timeout == 40:
+    if initial_timeout == 40:
         raise exc.PlaybackTimeout(
             'Timed out while waiting for the initial load.'
         )
-
-def rerecord(driver, settings, record): # pylint: disable=W0621
-    """
-    Rerecord a given test. :func:`.playback` handles it based on mode.
-    """
-    return playback(driver, settings, record)
 
 
 def _process_steps(steps, events, start_time):
@@ -101,16 +97,16 @@ def _process_steps(steps, events, start_time):
                 continue
             else:
                 # tab keyup carries the element of the new field, so go back one
-                # first keyup a tab could blow up
-                step = step if step.key != '\t' else steps[i-1]
-                merges.append(
-                    Text(
-                        offset_time=step.offset_time,
-                        value=step.value,
-                        identifier_type=step.identifier_type,
-                        identifier=step.identifier
+                step = step if step.key != '\t' else (steps[i-1] if i !=0 else None)
+                if step is not None:
+                    merges.append(
+                        Text(
+                            offset_time=step.offset_time,
+                            value=step.value,
+                            identifier_type=step.identifier_type,
+                            identifier=step.identifier
+                        )
                     )
-                )
         # not merging scrolls; might've been done for rendering side effects
 
     def _filter_steps(step):
@@ -125,6 +121,7 @@ def _process_steps(steps, events, start_time):
         key=operator.attrgetter('offset_time')
     )
     return steps
+
 
 def _begin_browsing(driver, settings):
     """
@@ -155,12 +152,22 @@ def _begin_browsing(driver, settings):
             )
         raise
 
-def has_page_changed(url, driver_url):
+
+def _has_page_changed(url, driver_url):
     """
     Has the page's URL changed? Exclude everything after a hash.
     """
-    return url[0:(url.find('#') if url.find('#') > 0 else len(url))] != \
-        driver_url[0:(driver_url.find('#') if driver_url.find('#') > 0 else len(driver_url))]
+    return \
+        url[0:(url.find('#') \
+            if url.find('#') > 0 \
+            else len(url))]\
+        .rstrip('/') \
+        != \
+        driver_url[0:(driver_url.find('#') \
+            if driver_url.find('#') > 0 \
+            else len(driver_url))]\
+        .rstrip('/')
+
 
 def record(driver, settings):
     """
@@ -176,7 +183,7 @@ def record(driver, settings):
             "or type Q if you're done.", ('Q', 'q'), testname=settings.name):
             break
         # detect page changes
-        if has_page_changed(url, driver.current_url):
+        if _has_page_changed(url, driver.current_url):
             navs.append(
                 Navigate(
                     driver.execute_script(js.now) - start_time,
@@ -222,9 +229,16 @@ def record(driver, settings):
         "ensure they \nare pixel-perfect when running automated. Press "
         "enter to start.", testname=settings.name
     )
-    rerecord(driver, settings, record)
+    playback(driver, settings, record)
 
     return record
+
+
+def rerecord(driver, settings, record): # pylint: disable=W0621
+    """
+    Rerecord a given test. :func:`.playback` handles it based on mode.
+    """
+    return playback(driver, settings, record)
 
 
 def playback(driver, settings, record): # pylint: disable=W0621,R0912

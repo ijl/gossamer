@@ -66,7 +66,7 @@ def import_recorded_run(inc):
     """
     Given a JSON object, create our objects.
     """
-    from gossamer.data import Test, Settings
+    from gossamer.data import Test, Settings, Point
     from gossamer import step
     for _, rec in inc.items(): # 1-element list
         if rec['version'] != 1:
@@ -74,6 +74,8 @@ def import_recorded_run(inc):
         steps = []
         for each in rec['steps']:
             key, val = each.items()[0]
+            if 'pos' in val:
+                val['pos'] = Point(**val['pos'])
             steps.append(getattr(step, key)(**val))
         steps = sorted(steps, key=operator.attrgetter('offset_time'))
         test = Test(

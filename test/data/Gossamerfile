@@ -1,0 +1,7 @@
+[example]
+desc=Example
+url=http://example.com/
+
+[mdn]
+desc=Mozilla Developer Network
+url=https://developer.mozilla.org/en-US/

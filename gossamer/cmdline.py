@@ -144,7 +144,7 @@ def initialize(
 
     # data_dir
     if not data_dir:
-        data_dir = os.path.join(os.getcwd(), 'huxleeey')
+        data_dir = os.path.join(os.getcwd(), 'gossamer')
     else:
         if not os.path.isabs(data_dir):
             data_dir = os.path.join(os.getcwd(), data_dir)

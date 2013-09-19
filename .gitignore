@@ -10,3 +10,4 @@ venv
 *.egg
 selenium
 .pypirc
+__pycache__
