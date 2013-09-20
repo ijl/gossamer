@@ -10,9 +10,6 @@ DIRNAME = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(DIRNAME, 'gossamer', '__init__.py')) as version:
     VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(version.read()).group(1)
 
-with open(os.path.join(DIRNAME, 'README.md')) as readme:
-    README = readme.read()
-
 setup(
     name = 'Gossamer',
     version = VERSION,
@@ -54,9 +51,9 @@ setup(
       'automated', 'visual', 'diff', 'screenshot', 'huxley'
     ],
     description = 'Watches you browse, takes screenshots, tells you when they change.',
-    long_description = README,
     url = 'https://github.com/ijl/gossamer',
     download_url = 'https://github.com/ijl/gossamer/tarball/%s' % VERSION,
     author = 'Jack Lutz',
     author_email = 'uijllji@gmail.com',
+    zip_safe=True
 )
