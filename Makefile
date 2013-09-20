@@ -1,4 +1,8 @@
-.PHONY: lint, test, dist, release
+.PHONY: lint
+.PHONY: test
+.PHONY: doc
+.PHONY: dist
+.PHONY: release
 
 develop:
 	virtualenv .venv --distribute

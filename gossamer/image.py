@@ -15,8 +15,8 @@ try:
 except ImportError: # pragma: no cover
     # PIL
     try:
-        import Image
-        import ImageChops
+        import Image # pylint: disable=F0401
+        import ImageChops # pylint: disable=F0401
     except ImportError:
         raise ImportError('Could not import Pillow or PIL')
 

@@ -16,7 +16,15 @@ This tool allows you to create visual regression tests by browsing normally and 
 
 ## Usage
 
-Specify a name and URL to visit for every test in a `Gossamerfile`.
+Gossamer is a command-line application, called with `gossamer`. You create
+tests you wish to record in a Gossamerfile. For each test, a WebDriver window
+is opened and you interact with the browser as a normal user, going back to the
+command line when you wish to take a screenshot and pressing enter. Your
+screenshots, and a record of your test, is written to a data directory.
+Playback is done by reading this directory, and comparing against 'good'
+screenshots. Gossamer assumes that Selenium Server is already running.
+
+To start, create a file `Gossamerfile` and specify a name and URL to visit for every test.
 
     [example]
     url=http://www.example.com
@@ -38,11 +46,15 @@ last test run's (possibly failing) screenshots.
 
 You can run your tests with:
 
-    gossamer --file Gossamerfile --data <data_dir> --record
+    gossamer --file Gossamerfile --data <data_dir> --record --save-diff
 
 If you wish to run only a subset of tests in that file, specify those tests' names as positional arguments.
 
-    gossamer --file Gossamerfile --data <data_dir> --record example
+    gossamer --file Gossamerfile --data <data_dir> --record --save-diff example
+
+**When you browse, wait for requests to finish and rendering to be complete before
+moving on to another action.** Also, scrolling is currently unreliable and best
+avoided. If you work within those limitations, playback will be reliable.
 
 If your UI has changed and you wish to update the screenshots to match, then
 run with `--rerecord`: the test will be rerun automatically, and new PNGs
@@ -56,10 +68,10 @@ To playback the tests, simply call without an `-r/-rr` flag:
 
 Further command-line options:
 
-    `--browser/-b`: browser to use
-    `--save-diff/-e`: when two images don't match, save a `diff.png` which highlights pixels that differ
-    `--overwrite/-o`: when recording tests, don't prompt about overwriting data
-    `--local/-l`: URL to Selenium.
+    --browser/-b: browser to use
+    --save-diff/-e: when two images don't match, save a `diff.png` which highlights pixels that differ
+    --overwrite/-o: when recording tests, don't prompt about overwriting data
+    --local/-l: URL to Selenium.
 
 Command-line options take precedence over Gossamerfile options. During playback,
 command-line or Gossamerfile options affecting the test itself are ignored;
@@ -72,7 +84,7 @@ If you're running Python tests, you can integrate your Gossamer tests like so:
     run_gossamerfile(locals(), <filename>, <data_dir>)
 
 This populates your module's locals with a `unittest.TestCase` instance for every
-test in the given Gossamerfile(s). Your test running will then detect and run them.
+test in the given Gossamerfile(s). Your test runner will then detect and run them.
 You will, however, need to ensure that your Selenium server and
 test webserver are up when your tests are run.
 
@@ -83,6 +95,8 @@ Your testing machine will need [Pillow's](https://github.com/python-imaging/Pill
 On that machine or another accessible to it you will need [Selenium Server](http://docs.seleniumhq.org/download/) installed and running. Note that Selenium Server comes with Firefox by default, needing an additional system package for Chrome, and for Internet Explorer an IE-specific standalone version of Selenium Server.
 
 You'll also need your 'target' webserver running on any machine.
+
+**If you receive an ImportError on selenium**, you need to remove older versions of selenium from your virtualenv.
 
 
 ## Authors
