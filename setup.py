@@ -10,6 +10,12 @@ DIRNAME = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(DIRNAME, 'gossamer', '__init__.py')) as version:
     VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(version.read()).group(1)
 
+# rst, written by `make doc`
+README = ''
+if os.path.exists('README'):
+    with open('README', 'r') as readme:
+        README = readme.read()
+
 setup(
     name = 'gossamerui',
     version = VERSION,
@@ -35,10 +41,10 @@ setup(
         '.gitignore',
         '.coverage',
         '.pylintrc',
-        'Makefile'
+        'README.md',
+        'test',
+        'Makefile',
       ],
-      'test': ['*'],
-      '.git': ['*'],
     },
     entry_points = {
         'console_scripts': [
@@ -50,9 +56,10 @@ setup(
       'selenium', 'webdriver', 'testing', 'regression', 'ui',
       'automated', 'visual', 'diff', 'screenshot', 'huxley',
     ],
-    description = 'User interface regression testing via automated screenshot comparison',
+    description = 'Web user interface regression testing via automated screenshot comparison',
+    long_description = README,
     url = 'https://github.com/ijl/gossamer',
-    download_url = 'https://github.com/ijl/gossamer/tarball/%s' % VERSION,
+    download_url = 'https://github.com/ijl/gossamer/archive/%s.tar.gz' % VERSION,
     author = 'Jack Lutz',
     author_email = 'uijllji@gmail.com',
     zip_safe=True

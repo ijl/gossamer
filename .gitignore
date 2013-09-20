@@ -11,3 +11,4 @@ venv
 selenium
 .pypirc
 __pycache__
+README
