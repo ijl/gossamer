@@ -187,6 +187,7 @@ def initialize(
         sys.stdout.flush()
         return exits.RECORDED_RUN_ERROR
 
+    driver = None
     try:
         driver = util.get_driver(browser, local, remote)
         if not driver:
@@ -222,7 +223,7 @@ def initialize(
                 return exits.OK
         return exits.OK
     finally:
-        util.close_driver(driver or None)
+        util.close_driver(driver)
 
 
 def main():

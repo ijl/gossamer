@@ -2,13 +2,16 @@
 setup
 """
 
-from setuptools import setup# , find_packages
+from setuptools import setup
 import os, re
 
 DIRNAME = os.path.dirname(os.path.abspath(__file__))
 
-with open(os.path.join(os.path.dirname(__file__), 'gossamer', '__init__.py')) as v:
-    VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(v.read()).group(1)
+with open(os.path.join(DIRNAME, 'gossamer', '__init__.py')) as version:
+    VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(version.read()).group(1)
+
+with open(os.path.join(DIRNAME, 'README.md')) as readme:
+    README = readme.read()
 
 setup(
     name = 'Gossamer',
@@ -30,7 +33,16 @@ setup(
         'pillow>=2.1.0'
     ],
     test_suite = "nose.collector",
-    package_data={'': ['requirements.txt']},
+    exclude_package_data = {
+      '': [
+        '.gitignore',
+        '.coverage',
+        '.pylintrc',
+        'Makefile'
+      ],
+      'test': ['*'],
+      '.git': ['*'],
+    },
     entry_points = {
         'console_scripts': [
             'gossamer=gossamer.cmdline:main'
@@ -42,8 +54,9 @@ setup(
       'automated', 'visual', 'diff', 'screenshot', 'huxley'
     ],
     description = 'Watches you browse, takes screenshots, tells you when they change.',
+    long_description = README,
     url = 'https://github.com/ijl/gossamer',
     download_url = 'https://github.com/ijl/gossamer/tarball/%s' % VERSION,
     author = 'Jack Lutz',
-    author_email = '',
+    author_email = 'uijllji@gmail.com',
 )

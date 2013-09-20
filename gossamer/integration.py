@@ -63,7 +63,7 @@ def _run_nose(self, name, test, browser, local, remote): # pylint: disable=R0913
         elif result == states.ERROR:
             raise exc.TestError() # todo
     finally:
-        util.close_driver(driver or None)
+        util.close_driver(driver)
 
 
 class GossamerTestCase(unittest.TestCase): # pylint: disable=R0904
