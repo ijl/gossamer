@@ -11,7 +11,7 @@ with open(os.path.join(DIRNAME, 'gossamer', '__init__.py')) as version:
     VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(version.read()).group(1)
 
 setup(
-    name = 'Gossamer',
+    name = 'gossamerui',
     version = VERSION,
     classifiers=[
       'Development Status :: 4 - Beta',

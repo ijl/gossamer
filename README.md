@@ -78,7 +78,7 @@ test webserver are up when your tests are run.
 
 ## Installation
 
-Your testing machine will need [Pillow's](https://github.com/python-imaging/Pillow) system-level dependencies for PNG support (namely `zlib1g-dev`, on Ubuntu, and Python dev). Gossamer can then be installed from PyPi with `pip install gossamer`.
+Your testing machine will need [Pillow's](https://github.com/python-imaging/Pillow) system-level dependencies for PNG support (namely `zlib1g-dev`, on Ubuntu, and Python dev). Gossamer can then be installed from PyPi with `pip install gossamerui`.
 
 On that machine or another accessible to it you will need [Selenium Server](http://docs.seleniumhq.org/download/) installed and running. Note that Selenium Server comes with Firefox by default, needing an additional system package for Chrome, and for Internet Explorer an IE-specific standalone version of Selenium Server.
 
