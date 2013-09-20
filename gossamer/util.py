@@ -81,32 +81,45 @@ class Encoder(json.JSONEncoder):
             return obj.__json__()
         return json.JSONEncoder.default(self, obj)
 
-def import_recorded_run(inc):
+
+def _import_run_v1(rec):
     """
-    Given a JSON object, create our objects.
+    Deserialize for Test.version == 1
     """
     from gossamer.data import Test, Settings, Point
     from gossamer import step
     mode_trans = {1: modes.RECORD, 2: modes.RERECORD, 3: modes.PLAYBACK}
-    for _, rec in inc.items(): # 1-element list
-        if rec['version'] != 1:
-            raise NotImplementedError()
-        steps = []
-        for each in rec['steps']:
-            key, val = each.items()[0]
-            if 'pos' in val:
-                val['pos'] = Point(**val['pos'])
-            steps.append(getattr(step, key)(**val))
-        for key, val in rec['settings'].items():
-            if key == 'mode':
-                rec['settings'][key] = mode_trans[val]
-        steps = sorted(steps, key=operator.attrgetter('offset_time'))
-        test = Test(
-            version=rec['version'],
-            settings=Settings(**rec['settings']),
-            steps=steps
-        )
+    steps = []
+    for each in rec['steps']:
+        key, val = each.items()[0]
+        if 'pos' in val:
+            val['pos'] = Point(**val['pos'])
+        steps.append(getattr(step, key)(**val))
+    for key, val in rec['settings'].items():
+        if key == 'mode':
+            rec['settings'][key] = mode_trans[val]
+    steps = sorted(steps, key=operator.attrgetter('offset_time'))
+    test = Test(
+        version=rec['version'],
+        settings=Settings(**rec['settings']),
+        steps=steps
+    )
     return test
+
+
+def import_recorded_run(inc):
+    """
+    Given a JSON object, create our objects.
+    """
+    if len(inc) > 1:
+        raise ValueError()
+    for _, rec in inc.items(): # 1-element list
+        obj = rec
+    if obj['version'] == 1:
+        return _import_run_v1(obj)
+    else:
+        raise NotImplementedError()
+
 
 def read_recorded_run(filename):
     """

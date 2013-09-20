@@ -47,10 +47,10 @@ setup(
     },
     license = 'Apache 2.0',
     keywords = [
-      'selenium', 'webdriver', 'testing', 'regression',
-      'automated', 'visual', 'diff', 'screenshot', 'huxley'
+      'selenium', 'webdriver', 'testing', 'regression', 'ui',
+      'automated', 'visual', 'diff', 'screenshot', 'huxley',
     ],
-    description = 'Watches you browse, takes screenshots, tells you when they change.',
+    description = 'User interface regression testing via automated screenshot comparison',
     url = 'https://github.com/ijl/gossamer',
     download_url = 'https://github.com/ijl/gossamer/tarball/%s' % VERSION,
     author = 'Jack Lutz',

@@ -82,6 +82,11 @@ class ElementNotVisible(Exception):
     was being hidden/unhidden or rendered.
     """
 
+class UnavailableBrowser(Exception):
+    """
+    WebDriver isn't starting with the user's browser selected.
+    """
+
 class WebDriverConnectionFailed(Exception):
     """
     Cannot connect to the webdriver--is it running?

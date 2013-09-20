@@ -43,4 +43,14 @@ def dispatch(driver, mode, tests, output=None, stop_on_error=False):
     except WebDriverException as err:
         if 'not reachable' in err.msg:
             raise exc.WebDriverWentAway('WebDriver cannot be reached.')
+        elif 'Cannot find function' in err.msg:
+            raise exc.UnavailableBrowser(
+                'WebDriver cannot seem to run the browser you selected. You '
+                'may be missing a WebDriver dependency needed for that browser '
+                '(e.g., chromium-chromedriver), or may need to use a separate '
+                'WebDriver (e.g., InternetExplorerDriver).'
+                )
+        raise
+    except Exception:
+        raise
     return run_log
