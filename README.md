@@ -44,8 +44,8 @@ Apache 2.0
 
 ## Contributing
 
-* See the included `Makefile`.
-* Please add tests and use the included .pylintrc.
+* Once you have the repository, setup using `make develop`.
+* Please add tests and use the included .pylintrc; you can run `make test` and `make lint`.
 * If any breaking changes are made to data structures, increment `constant.DATA_VERSION` and
 modify `util.import_recorded_run` to handle both new and old data.
 * Feel free to contribute any functionality you want.

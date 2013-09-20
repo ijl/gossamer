@@ -29,10 +29,6 @@ setup(
         'plac==0.9.1',
         'pillow>=2.1.0'
     ],
-    tests_require = [
-        'nose',
-        'nose-cov'
-    ],
     test_suite = "nose.collector",
     package_data={'': ['requirements.txt']},
     entry_points = {
