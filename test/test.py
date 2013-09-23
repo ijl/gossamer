@@ -96,12 +96,12 @@ class TestIntegration(unittest.TestCase): # pylint: disable=R0904
                 locals(),
                 gossamerfile,
                 '/tmp',
-                browser='chrome'
+                skip_allowed=False
             )
             self.assertTrue('GossamerTest_example' in locals())
             self.assertTrue('GossamerTest_mdn' in locals())
             for cls in (locals()['GossamerTest_example'], locals()['GossamerTest_mdn']):
-                self.assertTrue(cls == integration.GossamerTestCase)
+                self.assertEqual(cls.__base__, unittest.TestCase)
         finally:
             try:
                 shutil.rmtree('/tmp/example')

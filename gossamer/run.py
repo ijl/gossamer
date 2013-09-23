@@ -228,7 +228,7 @@ def record(driver, settings, output):
     )
     playback(driver, settings, record, output)
 
-    return record
+    return (record, None)
 
 
 def rerecord(driver, settings, record, output): # pylint: disable=W0621
@@ -246,7 +246,6 @@ def playback(driver, settings, record, output): # pylint: disable=W0621,R0912
         output("%s ... " % settings.desc, flush=True)
     else:
         output("Playing back %s ... " % settings.name, flush=True)
-
 
     _begin_browsing(driver, settings)
     wait_until_loaded(driver)
@@ -270,19 +269,22 @@ def playback(driver, settings, record, output): # pylint: disable=W0621,R0912
                         % settings.name
                 )
 
-    except Exception as err: # pylint: disable=W0703
+    except Exception as exception: # pylint: disable=W0703
         state = states.ERROR
-        if hasattr(err, 'msg') and err.msg.startswith('element not visible'):
+        if hasattr(exception, 'msg') and (exception.msg.startswith('element not visible') or
+            exception.msg.startswith('Element is not currently visible')):
             err = exc.ElementNotVisible(
                 "Element was not visible when expected during playback. If "
                 "your playback depended on a significant rerender having been "
                 "done, then make sure you've waited until nothing is changing "
                 "before taking a screenshot."
             )
+        else:
+            err = exception
 
     output('%s\n' % str(state))
     if err:
         output('%s\n' % str(err))
     output(flush=True)
-    return state
+    return (state, err)
 

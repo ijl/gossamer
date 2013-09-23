@@ -9,13 +9,13 @@ Integrate with unittest.
 import unittest
 
 from gossamer.main import dispatch
-from gossamer.constant import modes, states, LOCAL_WEBDRIVER_URL, REMOTE_WEBDRIVER_URL
+from gossamer.constant import modes, states, LOCAL_WEBDRIVER_URL
 from gossamer import util, exc
 
 
 def run_gossamerfile(
         client_locals, gossamerfile, data_dir,
-        browser=None, local=None, remote=None
+        selenium=None, skip_allowed=True
     ): # pylint: disable=R0913
     """
     Call this to read a Gossamerfile and run all of its tests.
@@ -23,20 +23,21 @@ def run_gossamerfile(
     if isinstance(gossamerfile, (str, unicode)):
         gossamerfile = [gossamerfile]
 
-    local = local or LOCAL_WEBDRIVER_URL
-    remote = remote or REMOTE_WEBDRIVER_URL
+    selenium = selenium or LOCAL_WEBDRIVER_URL
+    options = {'local': selenium, 'remote': selenium}
 
-    options = {'browser': browser, 'local': local, 'remote': remote}
+    driver_ok = util.check_driver(selenium)
 
     tests = util.make_tests(gossamerfile, modes.PLAYBACK, data_dir, **options)
-
     for key, test in tests.items():
-        case = GossamerTestCase
-        setattr(
-            case,
-            'runTest',
-            _nose_wrapper(case, key, test, test.settings.browser, local, remote)
+        case = type(
+            'GossamerTestCase',
+            GossamerTestCase.__bases__,
+            dict(GossamerTestCase.__dict__)
         )
+        case._skip_allowed = skip_allowed # pylint: disable=W0212
+        case._driver_ok = driver_ok # pylint: disable=W0212
+        case.runTest = _nose_wrapper(case, key, test, test.settings.browser, selenium, selenium)
         case.runTest.__func__.__doc__ = test.settings.desc or test.settings.name # pylint: disable=E1101,C0301
         client_locals['GossamerTest_%s' % key] = case
     return True
@@ -55,12 +56,15 @@ def _run_nose(self, name, test, browser, local, remote): # pylint: disable=R0913
     """
     try:
         driver = util.get_driver(browser, local, remote)
-        result = dispatch(
+        log = dispatch(
             driver, modes.PLAYBACK, {name: test, }, output=util.null_writer
-        )[name]
+        )
+        result, err = [each[name] for each in log]
         if result == states.FAIL:
             self.fail()
         elif result == states.ERROR:
+            if err is not None:
+                raise err
             raise exc.TestError() # todo
     finally:
         util.close_driver(driver)
@@ -70,3 +74,22 @@ class GossamerTestCase(unittest.TestCase): # pylint: disable=R0904
     """
     unittest case.
     """
+
+    _skip_allowed = True
+    _driver_ok = True
+
+    def setUp(self):
+        super(GossamerTestCase, GossamerTestCase()).setUp()
+        if not self._driver_ok:
+            if self._skip_allowed:
+                self.skipTest("Selenium Server is not available")
+            else:
+                raise exc.WebDriverConnectionFailed(
+                    "Selenium Server is not available"
+                )
+
+    def runTest(self):
+        """
+        Replaced within :func:`run_gossamerfile`.
+        """
+        pass

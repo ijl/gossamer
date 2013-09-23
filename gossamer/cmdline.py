@@ -196,7 +196,7 @@ def initialize(
         )
         # run the tests
         try:
-            logs = dispatch(driver, mode, tests)
+            logs, _ = dispatch(driver, mode, tests)
         except exc.NoScreenshotsRecorded as exception:
             sys.stdout.write(str(exception))
             sys.stdout.flush()

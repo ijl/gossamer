@@ -12,7 +12,7 @@ import json
 import operator
 import ConfigParser
 from selenium.common.exceptions import WebDriverException
-from urllib2 import URLError
+import urllib2
 
 from selenium import webdriver  # pylint: disable=F0401
 
@@ -153,6 +153,16 @@ def write_recorded_run(filename, output):
     return True
 
 
+def check_driver(url):
+    """
+    For a Selenium Server URL, see if the server appears to be up.
+    """
+    try:
+        code = urllib2.urlopen(url).getcode()
+    except Exception: # pylint: disable=W0703
+        code = 500
+    return code in (200, 301, 302)
+
 
 def get_driver(browser, local_webdriver=None, remote_webdriver=None):
     """
@@ -171,7 +181,7 @@ def get_driver(browser, local_webdriver=None, remote_webdriver=None):
         raise exc.InvalidBrowser(
             'Invalid browser %r; valid browsers are %r.' % (browser, DRIVERS.keys())
         )
-    except URLError as exception:
+    except urllib2.URLError as exception:
         raise exc.WebDriverConnectionFailed(
             'We cannot connect to the WebDriver %s -- is it running?' % driver_url
         )

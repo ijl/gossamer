@@ -29,21 +29,23 @@ def dispatch(driver, mode, tests, output=None, stop_on_error=False):
         modes.RERECORD: (run.rerecord, lambda x: (x.settings, x.steps)),
         modes.PLAYBACK: (run.playback, lambda x: (x.settings, x.steps))
     }
-    run_log = {name: None for name, _ in tests.iteritems()}
+    result_log = {name: None for name, _ in tests.iteritems()}
+    error_log = {name: None for name, _ in tests.iteritems()}
     try:
         for name, test in tests.iteritems():
-            output = funcs[mode][0](driver, *funcs[mode][1](test), output=output)
-            if (not output or output in (states.FAIL, states.ERROR)) and stop_on_error:
+            result, err = funcs[mode][0](driver, *funcs[mode][1](test), output=output)
+            if (not result or result in (states.FAIL, states.ERROR)) and stop_on_error:
                 break
-            run_log[name] = output
+            result_log[name] = result
+            error_log[name] = err
             if mode == modes.RECORD:
-                util.write_recorded_run(test.settings.path, output)
+                util.write_recorded_run(test.settings.path, result)
     except exc.NoScreenshotsRecorded:
         raise
-    except WebDriverException as err:
-        if 'not reachable' in err.msg:
+    except WebDriverException as exception:
+        if 'not reachable' in exception.msg:
             raise exc.WebDriverWentAway('WebDriver cannot be reached.')
-        elif 'Cannot find function' in err.msg:
+        elif 'Cannot find function' in exception.msg:
             raise exc.UnavailableBrowser(
                 'WebDriver cannot seem to run the browser you selected. You '
                 'may be missing a WebDriver dependency needed for that browser '
@@ -53,4 +55,4 @@ def dispatch(driver, mode, tests, output=None, stop_on_error=False):
         raise
     except Exception:
         raise
-    return run_log
+    return (result_log, error_log)
