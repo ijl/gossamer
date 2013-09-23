@@ -54,12 +54,26 @@ class Settings(object): # pylint: disable=R0903,R0902
         self.save_diff = save_diff
         self.desc = desc
         self.cookies = cookies
+        if self.cookies:
+            self._validate_cookies()
 
     def navigate(self):
         """
         Return data in form expected by :func:`gossamer.run.navigate`.
         """
         return (self.url, self.postdata)
+
+    def _validate_cookies(self):
+        if not iter(self.cookies):
+            raise ValueError('Cookies must be given as an iterable of dictionaries')
+        if len(set([cookie['domain'] for cookie in self.cookies])) > 1:
+            raise ValueError('Can only specify cookies for one domain')
+        for cookie in self.cookies:
+            if not isinstance(cookie, dict):
+                raise ValueError('Needed a dictionary for cookie')
+            for attr in ('name', 'domain', 'value'):
+                if not attr in cookie:
+                    raise ValueError('Cookie missing required attribute %s' % attr)
 
     def __json__(self):
         return self.__dict__

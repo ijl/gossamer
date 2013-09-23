@@ -37,7 +37,9 @@ def run_gossamerfile(
         )
         case._skip_allowed = skip_allowed # pylint: disable=W0212
         case._driver_ok = driver_ok # pylint: disable=W0212
-        case.runTest = _nose_wrapper(case, key, test, test.settings.browser, selenium, selenium)
+        case.runTest = _nose_wrapper(
+            case, key, test, test.settings.browser, selenium, selenium
+        )
         case.runTest.__func__.__doc__ = test.settings.desc or test.settings.name # pylint: disable=E1101,C0301
         client_locals['GossamerTest_%s' % key] = case
     return True

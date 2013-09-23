@@ -136,7 +136,6 @@ def _begin_browsing(driver, settings):
             # before setting a cookie for it -- so this assumes
             # we get only one domain in cookies.
             # https://code.google.com/p/selenium/issues/detail?id=1953
-            # todo: validate len(cookie) == 1 on import
             driver.refresh()
             _load_initial_js(driver)
     except WebDriverException as exception:

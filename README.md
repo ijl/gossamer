@@ -8,6 +8,7 @@ Gossamer watches you browse a website and record screenshots of your UI, then re
 * Supports JavaScript, including single-page apps
 * Allows navigating to new pages
 * Records your clicks and text input
+* Supports setting cookies for authentication and settings
 * During playback, waits for the page to be stable before taking further actions, rather than deciding on the basis of time elapsed
 * Tests can be run alongside your other Python `unittest` tests. Populate a module with a `unittest.TestCase` for each test within a testfile by calling `run_gossamerfile(locals(), <filename>, <data_dir>)`. You run it on your dev machine without worrying about Selenium when you don't need it, because Gossamer's tests skip by default if Selenium isn't running.
 * Configurable browser, data directories, and settings
