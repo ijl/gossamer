@@ -328,8 +328,7 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
                     raise exc.InvalidGossamerfile(
                         '%s did not have a `url` argument' % testname
                     )
-                if url[0] or url[-1] in ("'", '"'):
-                    url = url.strip("'").strip('"')
+                url = url.strip("'").strip('"')
 
                 cookies = test_config.get('cookies', None)
                 if cookies and len(cookies) > 0:
