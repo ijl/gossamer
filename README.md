@@ -1,6 +1,6 @@
 # Gossamer
 
-This tool allows you to create visual regression tests by browsing normally and taking screenshots. You needn't write Selenium tests, or make and keep in sync static pages for testing UI: this tool will test full webpages run on a development or testing webserver. It uses Selenium WebDriver to run the tests, and can be run as part of continuous integration testing.
+Gossamer watches you browse a website and record screenshots of your UI, then recreates your browsing session and passes or fails tests depending on whether the UI has changed. It's a way of automating in-browser visual regression testing, using Gossamer to automate Selenium WebDriver, expose test statuses of pass/fail/error, and provide visual diffs of failing tests. You needn't write Selenium tests, or make and keep in sync static pages for testing UI: this tool will test full webpages run on a development or testing webserver. Gossamer can be integrated into your continuous integration either via the command-line interface, or, if you're testing a Python application, via Python unittest integration.
 
 
 ## Features
@@ -9,7 +9,7 @@ This tool allows you to create visual regression tests by browsing normally and 
 * Allows navigating to new pages
 * Records your clicks and text input
 * During playback, waits for the page to be stable before taking further actions, rather than deciding on the basis of time elapsed
-* Tests can be run alongside your other Python `unittest` tests. Populate a module with a `unittest.TestCase` for each test within a testfile by calling `run_gossamerfile(locals(), <filename>, <data_dir>)`.
+* Tests can be run alongside your other Python `unittest` tests. Populate a module with a `unittest.TestCase` for each test within a testfile by calling `run_gossamerfile(locals(), <filename>, <data_dir>)`. You run it on your dev machine without worrying about Selenium when you don't need it, because Gossamer's tests skip by default if Selenium isn't running.
 * Configurable browser, data directories, and settings
 * Data is exported and read on every run as regular JSON files and PNGs
 
@@ -17,10 +17,10 @@ This tool allows you to create visual regression tests by browsing normally and 
 ## Usage
 
 Gossamer is a command-line application, called with `gossamer`. You create
-tests you wish to record in a Gossamerfile. For each test, a WebDriver window
+tests you wish to record in a text Gossamerfile. For each test, a WebDriver window
 is opened and you interact with the browser as a normal user, going back to the
 command line when you wish to take a screenshot and pressing enter. Your
-screenshots, and a record of your test, is written to a data directory.
+screenshots, and a JSON record of your test, is written to a data directory.
 Playback is done by reading this directory, and comparing against 'good'
 screenshots. Gossamer assumes that Selenium Server is already running.
 
@@ -96,8 +96,20 @@ On that machine or another accessible to it you will need [Selenium Server](http
 
 You'll also need your 'target' webserver running on any machine.
 
-**If you receive an ImportError on selenium**, you need to remove older versions of selenium from your virtualenv.
+#### ImportError on Selenium?
 
+If you receive an ImportError on selenium, check if you have an older (<2.35.0) version of `selenium` already installed in your virtualenv, and if so remove its files manually. There is a apparently a packaging bug in at least 2.32.0.
+
+#### Not familiar with Python?
+
+Here's an example of installing Gossamer into a virtual environment using Ubuntu:
+
+    sudo apt-get install python-virtualenv python-dev
+    virtualenv .venv --distribute
+    source .venv/bin/activate
+    pip install gossamerui
+
+For this application to be on your path, you'll need to use the `virtualenv` you installed it with. You do so by executing (assuming you're in the same directory as above) `source .venv/bin/activate`.
 
 ## Authors
 
