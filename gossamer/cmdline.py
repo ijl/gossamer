@@ -144,7 +144,7 @@ def initialize(
 
     # data_dir
     if not data_dir:
-        data_dir = os.path.join(os.getcwd(), 'gossamer')
+        data_dir = os.path.join(cwd, 'gossamer')
         sys.stdout.write('Default data directory of %s\n' % data_dir)
         sys.stdout.flush()
     else:
@@ -174,7 +174,7 @@ def initialize(
 
     # make tests using the test_files and mode we've resolved to
     try:
-        tests = util.make_tests(test_files, mode, data_dir, cwd, **options)
+        tests = util.make_tests(test_files, mode, data_dir, **options)
     except exc.DoNotOverwrite as exception:
         sys.stdout.write(str(exception))
         sys.stdout.write('\n')
@@ -187,43 +187,56 @@ def initialize(
         sys.stdout.flush()
         return exits.RECORDED_RUN_ERROR
 
+    # let the user mix browsers within tests by switching if browser has changed
+    # this is really ugly, because main.dispatch assumes a batch of tests
+    results = {}
+    errs = {}
+
+    current_browser = None
     driver = None
     try:
-        driver = util.get_driver(browser, local, remote)
-        if not driver:
-            raise exc.WebDriverConnectionFailed(
-            'We cannot connect to the WebDriver %s -- is it running?' % local
-        )
-        # run the tests
-        try:
-            logs, _ = dispatch(driver, mode, tests)
-        except exc.NoScreenshotsRecorded as exception:
-            sys.stdout.write(str(exception))
-            sys.stdout.flush()
-            return exits.ERROR
-        sys.stdout.write('\n')
-        sys.stdout.flush()
-        if mode == modes.PLAYBACK:
-            fails = sum(x is states.FAIL for _, x in logs.items())
-            errors = sum(x is states.ERROR for _, x in logs.items())
-            if fails > 0 or errors > 0:
-                msg = []
-                if fails > 0:
-                    msg.append('failed=%s' % fails)
-                if errors > 0:
-                    msg.append('errors=%s' % errors)
-                sys.stdout.write(
-                    'FAILED (%s)\n' % ', '.join(msg)
+        for key, test in tests.items():
+            if test.settings.browser != current_browser:
+                current_browser = test.settings.browser
+                util.close_driver(driver)
+                driver = util.get_driver(current_browser, local, remote)
+                if not driver:
+                    raise exc.WebDriverConnectionFailed(
+                    'We cannot connect to the WebDriver %s -- is it running?' % local
                 )
+                # run the tests
+            try:
+                result, err = dispatch(driver, mode, {key: test})
+                results.update(result)
+                errs.update(err)
+            except exc.NoScreenshotsRecorded as exception:
+                sys.stdout.write(str(exception))
                 sys.stdout.flush()
-                return exits.FAILED
-            else:
-                sys.stdout.write('OK (ok=%s)\n' % len(logs))
-                sys.stdout.flush()
-                return exits.OK
-        return exits.OK
+                return exits.ERROR
+            sys.stdout.write('\n')
+            sys.stdout.flush()
     finally:
         util.close_driver(driver)
+
+    if mode == modes.PLAYBACK:
+        fails = sum(x is states.FAIL for _, x in results.items())
+        errors = sum(x is states.ERROR for _, x in results.items())
+        if fails > 0 or errors > 0:
+            msg = []
+            if fails > 0:
+                msg.append('failed=%s' % fails)
+            if errors > 0:
+                msg.append('errors=%s' % errors)
+            sys.stdout.write(
+                'FAILED (%s)\n' % ', '.join(msg)
+            )
+            sys.stdout.flush()
+            return exits.FAILED
+        else:
+            sys.stdout.write('OK\n')
+            sys.stdout.flush()
+            return exits.OK
+    return exits.OK
 
 
 def main():

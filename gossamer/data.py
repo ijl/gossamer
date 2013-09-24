@@ -1,5 +1,5 @@
 """
-Non-step data structures.
+Data structures that do not represent user actions. For those, see `step`.
 """
 
 # Copyright (c) 2013 contributors; see AUTHORS.
@@ -17,6 +17,7 @@ class Test(object): # pylint: disable=R0903
         self.version = version
         self.settings = settings
         self.steps = steps
+
     def __json__(self):
         return {
             self.settings.name: {
@@ -64,6 +65,10 @@ class Settings(object): # pylint: disable=R0903,R0902
         return (self.url, self.postdata)
 
     def _validate_cookies(self):
+        """
+        Validate cookies for Selenium.
+        """
+        # http://selenium-python.readthedocs.org/en/latest/api.html#module-selenium.webdriver.remote.webdriver
         if not iter(self.cookies):
             raise ValueError('Cookies must be given as an iterable of dictionaries')
         if len(set([cookie['domain'] for cookie in self.cookies])) > 1:

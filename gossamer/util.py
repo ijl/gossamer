@@ -18,8 +18,8 @@ from selenium import webdriver  # pylint: disable=F0401
 
 from gossamer import exc
 
-from gossamer.constant import modes, exits, \
-    DEFAULT_DIFFCOLOR, REMOTE_WEBDRIVER_URL, DATA_VERSION
+from gossamer.constant import modes,  DEFAULT_DIFFCOLOR, \
+    REMOTE_WEBDRIVER_URL, DATA_VERSION
 
 def logger(name, level=None):
     """
@@ -272,7 +272,7 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
     return True
 
 
-def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disable=R0914,R0912,R0915
+def make_tests(test_files, mode, data_dir, **kwargs): # pylint: disable=R0914,R0912,R0915
     """
     Given a list of gossamer test files, a mode, working directory, and
     options as found on the CLI interface, make tests for use by the
@@ -298,28 +298,20 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
         config.read([file_name])
 
         for testname in config.sections():
-            existing_names.append(testname)
 
+            existing_names.append(testname)
             if names and (testname not in names):
                 continue
             if testname in tests:
-                log.debug('Duplicate test name %s', testname)
-                return exits.ERROR
+                raise exc.DuplicateTestName('Duplicate test name %s' % testname)
 
             test_config = dict(config.items(testname))
 
-            default_filename = os.path.join(
-                data_dir,
-                testname
-            )
-            filename = test_config.get(
-                'filename',
-                default_filename
-            )
-            if not os.path.isabs(filename):
-                if not cwd:
-                    raise ValueError('relative filename and no cwd')
-                filename = os.path.join(cwd, filename)
+            filename = test_config.get('filename', None)
+            if filename and not os.path.isabs(filename):
+                filename = os.path.join(data_dir, filename)
+            elif not filename:
+                filename = os.path.join(data_dir, testname)
 
             if mode != modes.PLAYBACK:
 
@@ -370,7 +362,6 @@ def make_tests(test_files, mode, data_dir, cwd=None, **kwargs): # pylint: disabl
             else:
                 recorded_run = read_recorded_run(os.path.join(filename, 'record.json'))
                 settings = recorded_run.settings
-
 
             verify_and_prepare_files(filename, testname, mode, overwrite)
 

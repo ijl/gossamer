@@ -29,10 +29,10 @@ def dispatch(driver, mode, tests, output=None, stop_on_error=False):
         modes.RERECORD: (run.rerecord, lambda x: (x.settings, x.steps)),
         modes.PLAYBACK: (run.playback, lambda x: (x.settings, x.steps))
     }
-    result_log = {name: None for name, _ in tests.iteritems()}
-    error_log = {name: None for name, _ in tests.iteritems()}
+    result_log = {name: None for name, _ in tests.items()}
+    error_log = {name: None for name, _ in tests.items()}
     try:
-        for name, test in tests.iteritems():
+        for name, test in tests.items():
             result, err = funcs[mode][0](driver, *funcs[mode][1](test), output=output)
             if (not result or result in (states.FAIL, states.ERROR)) and stop_on_error:
                 break

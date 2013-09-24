@@ -21,6 +21,11 @@ class RecordedRunEmpty(Exception):
     A record.json file is empty, meaning a run didn't complete.
     """
 
+class DuplicateTestName(Exception):
+    """
+    A test name is specified twice.
+    """
+
 class CouldNotParseRecordedRun(Exception):
     """
     Couldn't read a record.json for some reason.

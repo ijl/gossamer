@@ -22,6 +22,8 @@ def run_gossamerfile(
     """
     if isinstance(gossamerfile, (str, unicode)):
         gossamerfile = [gossamerfile]
+    elif isinstance(gossamerfile, dict):
+        gossamerfile = [val for _, val in gossamerfile.items()]
 
     selenium = selenium or LOCAL_WEBDRIVER_URL
     options = {'local': selenium, 'remote': selenium}

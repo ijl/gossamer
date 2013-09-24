@@ -14,8 +14,7 @@ def _get_javascript(name):
     """
     Convenience for reading JavaScript from package.
     """
-    return pkg_resources.resource_stream('gossamer', '%s.js' % name)
-
+    return pkg_resources.resource_stream('gossamer', '%s.js' % name).read()
 
 
 # https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver

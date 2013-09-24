@@ -40,6 +40,7 @@ def images_identical(path1, path2, margin=None):
     """
     Hacky test of images being identical. PIL can show incorrect diffs.
     """
+    util.log.debug('images_identical: %s, %s', path1, path2)
     margin = margin or 0
     im1 = Image.open(path1)
     im2 = Image.open(path2)
