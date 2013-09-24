@@ -1,6 +1,15 @@
 # Gossamer
 
-Gossamer watches you browse a website and record screenshots of your UI, then recreates your browsing session and passes or fails tests depending on whether the UI has changed. It's a way of automating in-browser visual regression testing, using Gossamer to automate Selenium WebDriver, expose test statuses of pass/fail/error, and provide visual diffs of failing tests. You needn't write Selenium tests, or make and keep in sync static pages for testing UI: this tool will test full webpages run on a development or testing webserver. Gossamer can be integrated into your continuous integration either via the command-line interface, or, if you're testing a Python application, via Python unittest integration.
+Gossamer watches you browse a website and record screenshots of your UI, then
+recreates your browsing session and passes or fails tests depending on whether
+the UI has changed. It's a way of automating in-browser visual regression
+testing, using Gossamer to automate Selenium WebDriver, expose test statuses
+of pass/fail/error, and provide visual diffs of failing tests. You needn't
+write Selenium tests, or make and keep in sync static pages for testing UI:
+this tool will test full webpages run on a development or testing webserver.
+Gossamer can be integrated into your continuous integration either via the
+command-line interface, or, if you're testing a Python application, via
+Python unittest integration.
 
 
 ## Features
@@ -9,8 +18,13 @@ Gossamer watches you browse a website and record screenshots of your UI, then re
 * Allows navigating to new pages
 * Records your clicks and text input
 * Supports setting cookies for authentication and settings
-* During playback, waits for the page to be stable before taking further actions, rather than deciding on the basis of time elapsed
-* Tests can be run alongside your other Python `unittest` tests. Populate a module with a `unittest.TestCase` for each test within a testfile by calling `run_gossamerfile(locals(), <filename>, <data_dir>)`. You run it on your dev machine without worrying about Selenium when you don't need it, because Gossamer's tests skip by default if Selenium isn't running.
+* During playback, waits for the page to be stable before taking further
+actions, rather than deciding on the basis of time elapsed
+* Tests can be run alongside your other Python `unittest` tests. Populate a
+module with a `unittest.TestCase` for each test within a testfile by calling
+`run_gossamerfile(locals(), <filename>, <data_dir>)`. You can run it on your
+dev machine without worrying about Selenium when you don't need it,
+because Gossamer's tests skip by default if Selenium isn't running.
 * Configurable browser, data directories, and settings
 * Data is exported and read on every run as regular JSON files and PNGs
 
@@ -18,14 +32,16 @@ Gossamer watches you browse a website and record screenshots of your UI, then re
 ## Usage
 
 Gossamer is a command-line application, called with `gossamer`. You create
-tests you wish to record in a text Gossamerfile. For each test, a WebDriver window
-is opened and you interact with the browser as a normal user, going back to the
-command line when you wish to take a screenshot and pressing enter. Your
-screenshots, and a JSON record of your test, is written to a data directory.
-Playback is done by reading this directory, and comparing against 'good'
-screenshots. Gossamer assumes that Selenium Server is already running.
+tests you wish to record in a text Gossamerfile. For each test, a WebDriver
+windowis opened and you interact with the browser as a normal user, going
+back to the command line when you wish to take a screenshot and pressing
+enter. Your screenshots, and a JSON record of your test, is written to a
+data directory. Playback is done by reading this directory, and comparing
+against 'good' screenshots. Gossamer assumes that Selenium Server is
+already running.
 
-To start, create a file `Gossamerfile` and specify a name and URL to visit for every test.
+To start, create a file `Gossamerfile` and specify a name and URL to visit for
+every test.
 
     [example]
     url=http://www.example.com
@@ -49,7 +65,8 @@ You can run your tests with:
 
     gossamer --file Gossamerfile --data <data_dir> --record --save-diff
 
-If you wish to run only a subset of tests in that file, specify those tests' names as positional arguments.
+If you wish to run only a subset of tests in that file, specify those tests'
+names as positional arguments.
 
     gossamer --file Gossamerfile --data <data_dir> --record --save-diff example
 
@@ -70,7 +87,8 @@ To playback the tests, simply call without an `-r/-rr` flag:
 Further command-line options:
 
     --browser/-b: browser to use
-    --save-diff/-e: when two images don't match, save a `diff.png` which highlights pixels that differ
+    --save-diff/-e: when two images don't match, save a diff.png which
+    highlights pixels that differ
     --overwrite/-o: when recording tests, don't prompt about overwriting data
     --local/-l: URL to Selenium.
 
@@ -91,15 +109,25 @@ test webserver are up when your tests are run.
 
 ## Installation
 
-Your testing machine will need [Pillow's](https://github.com/python-imaging/Pillow) system-level dependencies for PNG support (namely `zlib1g-dev`, on Ubuntu, and Python dev). Gossamer can then be installed from PyPi with `pip install gossamerui`.
+Your testing machine will need
+[Pillow's](https://github.com/python-imaging/Pillow) system-level
+dependencies for PNG support (namely `zlib1g-dev`, on Ubuntu, and Python
+dev). Gossamer can then be installed from PyPi with `pip install gossamerui`.
 
-On that machine or another accessible to it you will need [Selenium Server](http://docs.seleniumhq.org/download/) installed and running. Note that Selenium Server comes with Firefox by default, needing an additional system package for Chrome, and for Internet Explorer an IE-specific standalone version of Selenium Server.
+On that machine or another accessible to it you will need
+[Selenium Server](http://docs.seleniumhq.org/download/) installed and
+running. Note that Selenium Server comes with Firefox by default, needing
+an additional system package for Chrome, and for Internet Explorer an
+IE-specific standalone version of Selenium Server.
 
 You'll also need your 'target' webserver running on any machine.
 
 #### ImportError on Selenium?
 
-If you receive an ImportError on selenium, check if you have an older (<2.35.0) version of `selenium` already installed in your virtualenv, and if so remove its files manually. There is a apparently a packaging bug in at least 2.32.0.
+If you receive an ImportError on selenium, check if you have an older
+(<2.35.0) version of `selenium` already installed in your virtualenv, and
+if so remove its files manually. There is a apparently a packaging bug in
+at least 2.32.0.
 
 #### Not familiar with Python?
 
@@ -110,11 +138,14 @@ Here's an example of installing Gossamer into a virtual environment using Ubuntu
     source .venv/bin/activate
     pip install gossamerui
 
-For this application to be on your path, you'll need to use the `virtualenv` you installed it with. You do so by executing (assuming you're in the same directory as above) `source .venv/bin/activate`.
+For this application to be on your path, you'll need to use the `virtualenv`
+you installed it with. You do so by executing (assuming you're in the same
+directory as above) `source .venv/bin/activate`.
 
 ## Authors
 
-See the file `AUTHORS`. Based on Facebook's [Huxley](https://github.com/facebook/huxley), and rewritten.
+See the file `AUTHORS`. Based on Facebook's
+[Huxley](https://github.com/facebook/huxley), and rewritten.
 
 ## License
 
@@ -123,17 +154,22 @@ Apache 2.0
 
 ## Known Issues
 
-* Need support for changing the test URL via CLI and `run_gossamerfile` to support different environments.
+* Need support for changing the test URL via CLI and `run_gossamerfile` to
+support different environments.
 * Scrolling is unreliable.
 * Opening a slow iframe will likely timeout on playback.
-* Internet Explorer < 11 (which is all Selenium supports) shouldn't work at the moment because we use MutationObservers, but an older way of observing changes can be added for IE<11 (see `js.pageChangingObserver`).
+* Internet Explorer < 11 (which is all Selenium supports) shouldn't work at
+the moment because we use MutationObservers, but an older way of observing
+changes can be added for IE<11 (see `js.pageChangingObserver`).
 
 
 ## Contributing
 
 * Once you have the repository, setup using `make develop`.
-* Please add tests and use the included .pylintrc; you can run `make test` and `make lint`.
-* If any breaking changes are made to data structures, increment `constant.DATA_VERSION` and
+* Please add tests and use the included .pylintrc; you can run `make test`
+and `make lint`.
+* If any breaking changes are made to data structures, increment
+`constant.DATA_VERSION` and
 modify `util.import_recorded_run` to handle both new and old data.
 * Feel free to contribute any functionality you want.
 
