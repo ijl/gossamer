@@ -162,6 +162,9 @@ support different environments.
 the moment because we use MutationObservers, but an older way of observing
 changes can be added for IE<11 (see `js.pageChangingObserver`).
 
+## Issues
+
+Please create issues and pull requests at the [GitHub repository](https://github.com/ijl/gossamer).
 
 ## Contributing
 

@@ -272,7 +272,7 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
     return True
 
 
-def make_tests(test_files, mode, data_dir, **kwargs): # pylint: disable=R0914,R0912,R0915
+def make_tests(test_files, mode, data_dir, rewrite_url=None, **kwargs): # pylint: disable=R0914,R0912,R0915
     """
     Given a list of gossamer test files, a mode, working directory, and
     options as found on the CLI interface, make tests for use by the
@@ -362,6 +362,8 @@ def make_tests(test_files, mode, data_dir, **kwargs): # pylint: disable=R0914,R0
             else:
                 recorded_run = read_recorded_run(os.path.join(filename, 'record.json'))
                 settings = recorded_run.settings
+                if rewrite_url:
+                    settings.url = rewrite_url(settings.url)
 
             verify_and_prepare_files(filename, testname, mode, overwrite)
 

@@ -15,10 +15,40 @@ from gossamer import util, exc
 
 def run_gossamerfile(
         client_locals, gossamerfile, data_dir,
-        selenium=None, skip_allowed=True
+        selenium=None, skip_allowed=True, rewrite_url=None
     ): # pylint: disable=R0913
     """
-    Call this to read a Gossamerfile and run all of its tests.
+    Call this to read one or more Gossamerfiles and run all of their tests.
+    It will mutate the locals() passed to it by the inclusion of a complete
+    `unittest.TestCase` for every test in the given Gossamerfiles. Test
+    runners will then automatically add your tests.
+
+    Parameters:
+
+        client_locals, locals() dictionary:
+            `locals()` of the module from which the func is being called.
+
+        gossamerfile, {str, list, tuple, dict}:
+            Location to one or more Gossamerfiles.
+
+        data_dir:
+            The data directory containing the recorded tests and screenshots.
+
+        selenium (optional), str:
+            If provided, the Selenium Server URL to use instead of that in
+            the recorded tests. Use this to change servers with environments.
+
+        skip_allowed (optional), bool:
+            If true, if Selenium Server is not running,
+            unittest will skip this test; if false, it will error. Default
+            true.
+
+        rewrite_url (optional), callable:
+            If given, test URLs will be rewritten according to the provided
+            callable. This callable should accept a single parameter, a string,
+            which is the URL in the recorded test. Use this to change the
+            environment used. E.g., lambda x: x.replace('http://dev.', 'http://ci.').
+
     """
     if isinstance(gossamerfile, (str, unicode)):
         gossamerfile = [gossamerfile]
@@ -30,7 +60,9 @@ def run_gossamerfile(
 
     driver_ok = util.check_driver(selenium)
 
-    tests = util.make_tests(gossamerfile, modes.PLAYBACK, data_dir, **options)
+    tests = util.make_tests(
+        gossamerfile, modes.PLAYBACK, data_dir, rewrite_url=rewrite_url, **options
+    )
     for key, test in tests.items():
         case = type(
             'GossamerTestCase',
@@ -42,6 +74,7 @@ def run_gossamerfile(
         case.runTest = _nose_wrapper(
             case, key, test, test.settings.browser, selenium, selenium
         )
+        case._gossamer_test = test # pylint: disable=W0212
         case.runTest.__func__.__doc__ = test.settings.desc or test.settings.name # pylint: disable=E1101,C0301
         client_locals['GossamerTest_%s' % key] = case
     return True
@@ -81,6 +114,7 @@ class GossamerTestCase(unittest.TestCase): # pylint: disable=R0904
 
     _skip_allowed = True
     _driver_ok = True
+    _gossamer_test = None
 
     def setUp(self):
         super(GossamerTestCase, GossamerTestCase()).setUp()

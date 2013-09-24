@@ -35,6 +35,7 @@ class RecordedRunDoesNotExist(Exception):
     """
     A record.json file does not exist.
     """
+
 class UnknownTestName(Exception):
     """
     Test name given via CLI is not known from a file.
@@ -73,6 +74,11 @@ class InvalidWebDriverConfiguration(Exception):
 class ImageNotFound(Exception):
     """
     Imagediff was passed a filename to an image that doesn't exist.
+    """
+
+class ScreenshotsDiffer(Exception):
+    """
+    Screenshots are different... failed.
     """
 
 class PlaybackTimeout(Exception):

@@ -192,19 +192,17 @@ def initialize(
     results = {}
     errs = {}
 
-    current_browser = None
     driver = None
     try:
         for key, test in tests.items():
-            if test.settings.browser != current_browser:
-                current_browser = test.settings.browser
+            if driver is not None:
                 util.close_driver(driver)
-                driver = util.get_driver(current_browser, local, remote)
-                if not driver:
-                    raise exc.WebDriverConnectionFailed(
-                    'We cannot connect to the WebDriver %s -- is it running?' % local
-                )
-                # run the tests
+            driver = util.get_driver(test.settings.browser, local, remote)
+            if not driver:
+                raise exc.WebDriverConnectionFailed(
+                'We cannot connect to the WebDriver %s -- is it running?' % local
+            )
+            # run the tests
             try:
                 result, err = dispatch(driver, mode, {key: test})
                 results.update(result)

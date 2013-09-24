@@ -269,21 +269,26 @@ def playback(driver, settings, record, output): # pylint: disable=W0621,R0912
                 )
 
     except Exception as exception: # pylint: disable=W0703
-        state = states.ERROR
-        if hasattr(exception, 'msg') and (exception.msg.startswith('element not visible') or
-            exception.msg.startswith('Element is not currently visible')):
-            err = exc.ElementNotVisible(
-                "Element was not visible when expected during playback. If "
-                "your playback depended on a significant rerender having been "
-                "done, then make sure you've waited until nothing is changing "
-                "before taking a screenshot."
-            )
-        else:
+        if isinstance(exception, exc.ScreenshotsDiffer):
+            state = states.FAIL
             err = exception
+        else:
+            state = states.ERROR
+            if hasattr(exception, 'msg') and (exception.msg.startswith('element not visible') or
+                exception.msg.startswith('Element is not currently visible')):
+                err = exc.ElementNotVisible(
+                    "Element was not visible when expected during playback. If "
+                    "your playback depended on a significant rerender having been "
+                    "done, then make sure you've waited until nothing is changing "
+                    "before taking a screenshot."
+                )
+            else:
+                err = exception
 
-    output('%s\n' % str(state))
+    output('%s' % str(state))
     if err:
-        output('%s\n' % str(err))
-    output(flush=True)
+        output(': %s\n' % str(err))
+    else:
+        output('\n')
     return (state, err)
 

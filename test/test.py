@@ -96,12 +96,15 @@ class TestIntegration(unittest.TestCase): # pylint: disable=R0904
                 locals(),
                 gossamerfile,
                 '/tmp',
-                skip_allowed=False
+                skip_allowed=False,
+                rewrite_url=lambda x: x.replace('.com', '.com:80').replace('.org', '.org:80')
             )
             self.assertTrue('GossamerTest_example' in locals())
             self.assertTrue('GossamerTest_mdn' in locals())
             for cls in (locals()['GossamerTest_example'], locals()['GossamerTest_mdn']):
                 self.assertEqual(cls.__base__, unittest.TestCase)
+                self.assertEqual(cls._skip_allowed, False) # pylint: disable=W0212
+                self.assertTrue(':80' in cls._gossamer_test.settings.url) # pylint: disable=W0212
         finally:
             try:
                 shutil.rmtree('/tmp/example')

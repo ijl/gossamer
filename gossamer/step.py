@@ -11,7 +11,7 @@ import os
 import time
 
 from gossamer.constant import modes
-from gossamer.exc import TestError
+from gossamer.exc import ScreenshotsDiffer
 from gossamer.image import images_identical, image_diff, allowance
 from gossamer import util
 
@@ -188,14 +188,14 @@ class Screenshot(TestStep):
                 if settings.save_diff:
                     diffpath = os.path.join(settings.path, 'diff.png')
                     diff = image_diff(original, new, diffpath, settings.diffcolor)
-                    raise TestError(
+                    raise ScreenshotsDiffer(
                         'Screenshot %s was different; compare %s with %s. See %s '
                         'for the comparison. diff=%r' % (
                             self.num, original, new, diffpath, diff
                         )
                     )
                 else:
-                    raise TestError('Screenshot %s was different.' % self.num)
+                    raise ScreenshotsDiffer('Screenshot %s was different.' % self.num)
 
 
 class Scroll(TestStep): # pylint: disable=R0903
