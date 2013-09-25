@@ -18,7 +18,9 @@ doc:
 	pandoc -f markdown -t rst README.md > README
 
 dist:
+	rm -rf dist
 	python setup.py sdist --format=gztar
+	rm -rf *.egg-info
 
 release:
 	make doc

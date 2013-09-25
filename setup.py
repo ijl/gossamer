@@ -5,9 +5,7 @@ setup
 from setuptools import setup
 import os, re
 
-DIRNAME = os.path.dirname(os.path.abspath(__file__))
-
-with open(os.path.join(DIRNAME, 'gossamer', '__init__.py')) as version:
+with open('gossamer/__init__.py') as version:
     VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(version.read()).group(1)
 
 # rst, written by `make doc`
@@ -18,50 +16,42 @@ if os.path.exists('README'):
 
 setup(
     name = 'gossamerui',
+    provides = 'gossamer',
     version = VERSION,
+    packages=['gossamer', ],
+    install_requires = [
+        'selenium >= 2.35.0',
+        'plac == 0.9.1',
+        'pillow >= 2.1.0'
+    ],
     classifiers=[
       'Development Status :: 4 - Beta',
       'Environment :: Console',
       'Intended Audience :: Developers',
-      'Programming Language :: Python',
       'Operating System :: OS Independent',
       'License :: OSI Approved :: Apache Software License',
+      'Programming Language :: Python',
+      'Programming Language :: Python :: 2',
       'Topic :: Software Development :: Testing',
       'Topic :: Software Development :: Quality Assurance',
+      'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    packages = ['gossamer', ],
-    install_requires = [
-        'selenium>=2.35.0',
-        'plac==0.9.1',
-        'pillow>=2.1.0'
-    ],
-    test_suite = "nose.collector",
     package_data = {
-      '': [
+      'gossamer': [
         '*.js',
-      ],
-    },
-    exclude_package_data = {
-      '': [
-        '.gitignore',
-        '.coverage',
-        '.pylintrc',
-        'README.md',
-        'test',
-        'Makefile',
       ],
     },
     entry_points = {
         'console_scripts': [
-            'gossamer=gossamer.cmdline:main'
+            'gossamer = gossamer.cli:main'
+        ],
+        'setuptools.installation': [
+            'eggsecutable = gossamer.cli:main',
         ]
     },
     license = 'Apache 2.0',
-    keywords = [
-      'selenium', 'webdriver', 'testing', 'regression', 'ui',
-      'automated', 'visual', 'diff', 'screenshot', 'huxley',
-    ],
-    description = 'Web user interface regression testing via automated screenshot comparison',
+    keywords = 'selenium webdriver testing regression ui automated visual diff screenshot huxley',
+    description = 'Website user interface regression testing',
     long_description = README,
     url = 'https://github.com/ijl/gossamer',
     download_url = 'https://github.com/ijl/gossamer/archive/%s.tar.gz' % VERSION,

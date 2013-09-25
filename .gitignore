@@ -6,9 +6,10 @@ dist/
 venv
 .venv
 .coverage
-*.egg-info
-*.egg
 selenium
 .pypirc
 __pycache__
 README
+MANIFEST
+*.egg-info
+*.egg

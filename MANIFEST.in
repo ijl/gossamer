@@ -1,2 +1,4 @@
 recursive-exclude test *
 include gossamer/*.js
+prune gossamerui.egg-info
+exclude .*

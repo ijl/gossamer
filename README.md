@@ -122,25 +122,6 @@ IE-specific standalone version of Selenium Server.
 
 You'll also need your 'target' webserver running on any machine.
 
-#### ImportError on Selenium?
-
-If you receive an ImportError on selenium, check if you have an older
-(<2.35.0) version of `selenium` already installed in your virtualenv, and
-if so remove its files manually. There is a apparently a packaging bug in
-at least 2.32.0.
-
-#### Not familiar with Python?
-
-Here's an example of installing Gossamer into a virtual environment using Ubuntu:
-
-    sudo apt-get install python-virtualenv python-dev
-    virtualenv .venv --distribute
-    source .venv/bin/activate
-    pip install gossamerui
-
-For this application to be on your path, you'll need to use the `virtualenv`
-you installed it with. You do so by executing (assuming you're in the same
-directory as above) `source .venv/bin/activate`.
 
 ## Authors
 
