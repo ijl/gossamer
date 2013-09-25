@@ -306,12 +306,7 @@ def make_tests(test_files, mode, data_dir, rewrite_url=None, **kwargs): # pylint
                 raise exc.DuplicateTestName('Duplicate test name %s' % testname)
 
             test_config = dict(config.items(testname))
-
-            filename = test_config.get('filename', None)
-            if filename and not os.path.isabs(filename):
-                filename = os.path.join(data_dir, filename)
-            elif not filename:
-                filename = os.path.join(data_dir, testname)
+            filename = os.path.join(data_dir, testname)
 
             if mode != modes.PLAYBACK:
 
@@ -362,6 +357,7 @@ def make_tests(test_files, mode, data_dir, rewrite_url=None, **kwargs): # pylint
             else:
                 recorded_run = read_recorded_run(os.path.join(filename, 'record.json'))
                 settings = recorded_run.settings
+                settings.path = filename
                 if rewrite_url:
                     settings.url = rewrite_url(settings.url)
 

@@ -2,7 +2,7 @@
 :func:`.dispatch` runs tests that have already been setup.
 
 Tests can be setup through the command-line interface via
-:func:`gossamer.cmdline.main` and through unittest via
+:func:`gossamer.cli.main` and through unittest via
 :class:`gossamer.integration.GossamerTestCase`.
 """
 
