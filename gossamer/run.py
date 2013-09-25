@@ -287,8 +287,6 @@ def playback(driver, settings, record, output): # pylint: disable=W0621,R0912
 
     output('%s' % str(state))
     if err:
-        output(': %s\n' % str(err))
-    else:
-        output('\n')
+        output(': %s' % str(err))
     return (state, err)
 

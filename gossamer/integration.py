@@ -98,7 +98,10 @@ def _run_nose(self, name, test, browser, local, remote): # pylint: disable=R0913
         )
         result, err = [each[name] for each in log]
         if result == states.FAIL:
-            self.fail()
+            if err is not None:
+                self.fail(str(err))
+            else:
+                self.fail('Screenshots were different.')
         elif result == states.ERROR:
             if err is not None:
                 raise err
