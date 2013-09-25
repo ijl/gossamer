@@ -1,3 +1,5 @@
+// getGossamerEvents
+// Store events we're interested in reproducing.
 (function() {
     var events = [];
 

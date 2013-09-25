@@ -1,4 +1,7 @@
 // pageChangingObserver
+// Has there been a MutationObserver event within the specified timeout?
+// Are there any active XMLHttpRequests?
+// If so, the page is returned as still-changing, and Gossamer polls again.
 (function() {
     window._gossamerLastModified = Date.now();
     var _XMLHttpRequest = XMLHttpRequest.prototype.open;;
@@ -15,8 +18,8 @@
 })(XMLHttpRequest);
 (function() {
     window._gossamerIsPageChanging = function(timeout) {
-        return timeout > ( Date.now() - window._gossamerLastModified ) &&
-            window._gossamerXMLHTTPs == 0;
+        return timeout > ( Date.now() - window._gossamerLastModified )
+             && window._gossamerXMLHTTPs == 0;
     }
     var observer = new MutationObserver(
         function(mutations) {

@@ -36,6 +36,11 @@ setup(
         'pillow>=2.1.0'
     ],
     test_suite = "nose.collector",
+    package_data = {
+      '': [
+        '*.js',
+      ],
+    },
     exclude_package_data = {
       '': [
         '.gitignore',
