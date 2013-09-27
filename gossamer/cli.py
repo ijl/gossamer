@@ -175,7 +175,7 @@ def initialize(
     # make tests using the test_files and mode we've resolved to
     try:
         tests = util.make_tests(test_files, mode, data_dir, **options)
-    except exc.DoNotOverwrite as exception:
+    except (exc.DoNotOverwrite, exc.WebDriverConnectionFailed) as exception:
         sys.stdout.write(str(exception))
         sys.stdout.write('\n')
         sys.stdout.flush()
@@ -197,11 +197,13 @@ def initialize(
         for key, test in tests.items():
             if driver is not None:
                 util.close_driver(driver)
-            driver = util.get_driver(test.settings.browser, local, remote)
-            if not driver:
-                raise exc.WebDriverConnectionFailed(
-                'We cannot connect to the WebDriver %s -- is it running?' % local
-            )
+            try:
+                driver = util.get_driver(test.settings.browser, local, remote)
+            except exc.WebDriverConnectionFailed:
+                sys.stderr.write(
+                    'We cannot connect to the WebDriver %s -- is it running?\n' % local
+                )
+                return exits.ERROR
             # run the tests
             try:
                 result, err = dispatch(driver, mode, {key: test})
