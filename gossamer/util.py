@@ -237,7 +237,7 @@ def _postdata(arg):
     return None
 
 
-def verify_and_prepare_files(filename, testname, mode, overwrite):
+def verify_and_prepare_files(filename, testname, mode, overwrite): # pylint: disable=R0912
     """
     Prepare directories on file system, including clearing existing data
     if necessary.
@@ -259,9 +259,13 @@ def verify_and_prepare_files(filename, testname, mode, overwrite):
                 for each in os.listdir(filename):
                     if each.split('.')[-1] in ('png', 'json'):
                         os.remove(os.path.join(filename, each))
-                for each in os.listdir(os.path.join(filename, 'last')):
-                    if each.split('.')[-1] == 'png':
-                        os.remove(os.path.join(filename, 'last', each))
+                try:
+                    for each in os.listdir(os.path.join(filename, 'last')):
+                        if each.split('.')[-1] == 'png':
+                            os.remove(os.path.join(filename, 'last', each))
+                except OSError as exception:
+                    if exception.errno == 2: # No such file or directory
+                        os.makedirs(os.path.join(filename, 'last'))
     else:
         if mode == modes.RECORD:
             os.makedirs(filename)
@@ -308,7 +312,7 @@ def make_tests(test_files, mode, data_dir, rewrite_url=None, **kwargs): # pylint
             test_config = dict(config.items(testname))
             filename = os.path.join(data_dir, testname)
 
-            if mode != modes.PLAYBACK:
+            if mode == modes.RECORD:
 
                 url = test_config.get('url', None)
                 if not url:
@@ -351,7 +355,8 @@ def make_tests(test_files, mode, data_dir, rewrite_url=None, **kwargs): # pylint
                     postdata=postdata or test_config.get('postdata'),
                     diffcolor=diffcolor,
                     save_diff=kwargs.pop('save_diff', None),
-                    cookies=cookies
+                    cookies=cookies,
+                    expect_redirect=test_config.get('expect_redirect', None)
                 )
 
             else:

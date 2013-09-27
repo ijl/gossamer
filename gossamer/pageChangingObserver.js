@@ -3,23 +3,26 @@
 // Are there any active XMLHttpRequests?
 // If so, the page is returned as still-changing, and Gossamer polls again.
 (function() {
+    "use strict";
     window._gossamerLastModified = Date.now();
-    var _XMLHttpRequest = XMLHttpRequest.prototype.open;;
+    var _XMLHttpRequest = XMLHttpRequest.prototype.open;
     window._gossamerXMLHTTPs = 0;
     XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
         window._gossamerXMLHTTPs++;
         this.addEventListener("readystatechange", function() {
-            if (this.readyState == 4) {
+            if (this.readyState === 4) {
                 window._gossamerXMLHTTPs--;
             }
         }, false);
         _XMLHttpRequest.call(this, method, url, async, user, pass);
     }
 })(XMLHttpRequest);
+
 (function() {
+    "use strict";
     window._gossamerIsPageChanging = function(timeout) {
         return timeout > ( Date.now() - window._gossamerLastModified )
-             && window._gossamerXMLHTTPs == 0;
+             && window._gossamerXMLHTTPs === 0;
     }
     var observer = new MutationObserver(
         function(mutations) {

@@ -38,6 +38,9 @@ def get_post(url, postdata): # pragma: no cover
     """
     Retrieve data for navigate.
     """
+    if not isinstance(postdata, dict):
+        postdata = json.loads(postdata)
+
     markup = '\n'.join([
         '<form method="post" action="%s">' % url,
         '\n'.join(['<input type="hidden" name="%s" />' % k for k in postdata.keys()]),

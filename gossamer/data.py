@@ -42,7 +42,8 @@ class Settings(object): # pylint: disable=R0903,R0902
     def __init__(self,
             name, url, mode, path, browser,
             screensize, postdata,
-            diffcolor, save_diff, cookies=None, desc=None
+            diffcolor, save_diff, cookies=None, desc=None,
+            expect_redirect=None
         ): # pylint: disable=R0913
         self.name = name
         self.url = url
@@ -57,6 +58,7 @@ class Settings(object): # pylint: disable=R0903,R0902
         self.cookies = cookies
         if self.cookies:
             self._validate_cookies()
+        self.expect_redirect = expect_redirect
 
     def navigate(self):
         """

@@ -12,7 +12,8 @@ import time
 from selenium.common.exceptions import WebDriverException
 
 from gossamer.constant import states, DATA_VERSION
-from gossamer.step import Screenshot, Click, Key, Scroll, Text, Navigate
+from gossamer.step import Screenshot, Click, Key, Scroll, Text, \
+    Navigate, Dropdown, KeyParams, ClickParams
 from gossamer.data import Point, Test
 from gossamer import util, js, exc
 
@@ -59,23 +60,38 @@ def wait_until_loaded(driver):
         )
 
 
-def _process_steps(steps, events, start_time):
+def _process_steps(steps, events, start_time): # pylint: disable=R0912
     """
     Process events from the user agent into our objects.
     """
+    util.log.debug('_process_steps: %s steps, %s events', len(steps), len(events))
     for (timestamp, action, params) in events:
+        util.log.debug('event: %i, %s, %r', timestamp, action, params)
         if action == 'click':
-            steps.append(
-                Click(timestamp - start_time, Point(*params))
-            )
+            params = ClickParams(*params)
+            if not params[1]:
+                steps.append(
+                    Click(timestamp - start_time, Point(*params.pos))
+                )
+            else:
+                steps.append(
+                    Dropdown(
+                        timestamp - start_time,
+                        Point(*params.pos),
+                        params.eid,
+                        params.ecn,
+                        params.ecl
+                    )
+                )
         elif action == 'keyup':
+            params = KeyParams(*params)
             steps.append(
                 Key(
                     timestamp - start_time,
-                    key=params[0], shift=params[1],
-                    eid=params[2][0], eid_val=params[2][1],
-                    ecn=params[3][0], ecn_val=params[3][1],
-                    ecl=params[4][0], ecl_val=params[4][1]
+                    key=params.key, shift=params.shift,
+                    eid=params.eid[0], eid_val=params.eid[1],
+                    ecn=params.ecn[0], ecn_val=params.ecn[1],
+                    ecl=params.ecl[0], ecl_val=params.ecl[1]
                 )
             )
         elif action == 'scroll':
@@ -92,10 +108,12 @@ def _process_steps(steps, events, start_time):
             last_screenshot_time = step.offset_time
         if isinstance(step, Key):
             if i != length and step.key != '\t' and isinstance(steps[i+1], Key):
+                util.log.debug('Skipping key %s' % Key)
                 continue
             else:
+                util.log.debug('Adding key %s' % Key)
                 # tab keyup carries the element of the new field, so go back one
-                step = step if step.key != '\t' else (steps[i-1] if i !=0 else None)
+                step = step if step.key != '\t' else (steps[i-1] if i != 0 else None)
                 if step is not None:
                     merges.append(
                         Text(
@@ -171,6 +189,7 @@ def record(driver, settings, output):
     Record a given test.
     """
     _begin_browsing(driver, settings)
+    driver.execute_script('return window._getGossamerEvents();')
     start_time = driver.execute_script(js.now)
     url = settings.url
     steps = []
@@ -181,12 +200,14 @@ def record(driver, settings, output):
             break
         # detect page changes
         if _has_page_changed(url, driver.current_url):
-            navs.append(
-                Navigate(
-                    driver.execute_script(js.now) - start_time,
-                    driver.current_url
+            if (not len(navs) and not settings.expect_redirect):
+                # only add to navs if an initial redirect is not expected
+                navs.append(
+                    Navigate(
+                        driver.execute_script(js.now) - start_time,
+                        driver.current_url
+                    )
                 )
-            )
             url = driver.current_url
             _load_initial_js(driver)
         output('Taking screenshot ... ', flush=True)
@@ -213,10 +234,14 @@ def record(driver, settings, output):
                                     'or it may have stopped responding.'):
         raise exc.TestError('Event-capturing script was unresponsive.')
 
+    steps = _process_steps(steps + navs, events, start_time)
+    for step in steps:
+        util.log.debug('Step: %r', step)
+
     record = Test( # pylint: disable=W0621
         version = DATA_VERSION,
         settings = settings,
-        steps = _process_steps(steps + navs, events, start_time)
+        steps = steps
     )
 
     util.prompt(
