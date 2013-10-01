@@ -65,7 +65,7 @@ def _process_steps(steps, events, start_time): # pylint: disable=R0912
     Process events from the user agent into our objects.
     """
     util.log.debug('_process_steps: %s steps, %s events', len(steps), len(events))
-    for (timestamp, action, params) in events:
+    for (timestamp, action, params) in sorted(events, key=lambda x: x[0]):
         util.log.debug('event: %i, %s, %r', timestamp, action, params)
         if action == 'click':
             params = ClickParams(*params)
@@ -182,20 +182,55 @@ def _has_page_changed(url, driver_url):
         .rstrip('/')
 
 
+class CaptureEvents(object): # pylint: disable=R0903
+    """
+    Merge new events with old, keeping state of `timestamp`.
+    """
+
+    def __init__(self, timestamp):
+        self.timestamp = timestamp
+
+    def __call__(self, driver, events):
+        """
+        Capture events many times during a run, and merge them based
+        on a composite key of 'timestamp.action'. This is an ugly workaround
+        for an apparent Selenium issue.
+        """
+        util.log.debug('capture_events')
+        timestamp = driver.execute_script(js.now)
+        merges = driver.execute_script('return window._getGossamerEvents();')
+        if type(merges) in (unicode, str) and merges.startswith(
+                                        'A script on this page may be busy, '
+                                        'or it may have stopped responding.'):
+            raise exc.TestError('Event-capturing script was unresponsive.')
+        for event in merges:
+            if event[0] > self.timestamp:
+                events['%s.%s' % (str(event[0]), str(event[1]))] = event
+        self.timestamp = timestamp
+        for event in events:
+            util.log.debug('event: %r' % event)
+        return events
+
+
 def record(driver, settings, output):
     """
     Record a given test.
     """
     _begin_browsing(driver, settings)
-    driver.execute_script('return window._getGossamerEvents();')
     start_time = driver.execute_script(js.now)
     url = settings.url
     steps = []
     navs = []
+    events = {}
+    get_events = CaptureEvents(start_time)
+
     while True:
         if util.prompt("\nPress enter to take a screenshot, "
             "or type Q if you're done.", ('Q', 'q'), testname=settings.name):
             break
+        events = get_events(driver, events)
+        util.log.debug('events: %r' % events)
+
         # detect page changes
         if _has_page_changed(url, driver.current_url):
             if (not len(navs) and not settings.expect_redirect):
@@ -208,6 +243,8 @@ def record(driver, settings, output):
                 )
             url = driver.current_url
             _load_initial_js(driver)
+
+        # take screenshot
         output('Taking screenshot ... ', flush=True)
         screenshot_step = Screenshot(
             driver.execute_script(js.now) - start_time,
@@ -219,20 +256,17 @@ def record(driver, settings, output):
             '%d screenshot%s in test.\n' % \
             (len(steps), 's' if len(steps) > 1 else '')
         )
+
+    # must have at least one screenshot
     if len(steps) == 0:
         raise exc.NoScreenshotsRecorded(
-            'No screenshots recorded for %s--please use at least one\n' % \
+            'No screenshots recorded for %s--please take at least one\n' % \
                 settings.name
         )
 
-    # now capture the events
-    events = driver.execute_script('return window._getGossamerEvents();')
-    if type(events) in (unicode, str) and events.startswith(
-                                    'A script on this page may be busy, '
-                                    'or it may have stopped responding.'):
-        raise exc.TestError('Event-capturing script was unresponsive.')
-
-    steps = _process_steps(steps + navs, events, start_time)
+    # final capture of events
+    events = get_events(driver, events)
+    steps = _process_steps(steps + navs, events.values(), start_time)
     record = Test( # pylint: disable=W0621
         version = DATA_VERSION,
         settings = settings,
