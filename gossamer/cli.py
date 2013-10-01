@@ -43,14 +43,9 @@ from gossamer import __version__
         'flag', 'rr'
     ),
 
-    local = plac.Annotation(
-        'Local WebDriver URL to use',
-        'option', 'l',
-        metavar=DEFAULT_WEBDRIVER
-    ),
-    remote = plac.Annotation(
-        'Remote WebDriver to use',
-        'option', 'w',
+    selenium = plac.Annotation(
+        'Selenium WebDriver URL to use',
+        'option', 's',
         metavar=DEFAULT_WEBDRIVER
     ),
 
@@ -102,8 +97,7 @@ def initialize(
         testfile=None,
         record=False,
         rerecord=False,
-        local=None,
-        remote=None,
+        selenium=None,
         postdata=None,
         browser=None,
         screensize=None,
@@ -164,7 +158,7 @@ def initialize(
         mode = modes.PLAYBACK
 
     attrs = (
-        'names', 'local', 'remote', 'postdata',
+        'names', 'selenium', 'postdata',
         'browser', 'screensize', 'diffcolor', 'save_diff', 'overwrite'
     )
     options = {
@@ -198,10 +192,10 @@ def initialize(
             if driver is not None:
                 util.close_driver(driver)
             try:
-                driver = util.get_driver(test.settings.browser, local, remote)
+                driver = util.get_driver(test.settings.browser, selenium)
             except exc.WebDriverConnectionFailed:
                 sys.stderr.write(
-                    'We cannot connect to the WebDriver %s -- is it running?\n' % local
+                    'We cannot connect to the WebDriver %s -- is it running?\n' % selenium
                 )
                 return exits.ERROR
             # run the tests

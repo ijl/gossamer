@@ -9,7 +9,7 @@ Integrate with unittest.
 import unittest
 
 from gossamer.main import dispatch
-from gossamer.constant import modes, states, LOCAL_WEBDRIVER_URL
+from gossamer.constant import modes, states, DEFAULT_WEBDRIVER
 from gossamer import util, exc
 
 
@@ -55,7 +55,7 @@ def run_gossamerfile(
     elif isinstance(gossamerfile, dict):
         gossamerfile = [val for _, val in gossamerfile.items()]
 
-    selenium = selenium or LOCAL_WEBDRIVER_URL
+    selenium = selenium or DEFAULT_WEBDRIVER
     options = {'local': selenium, 'remote': selenium}
 
     driver_ok = util.check_driver(selenium)

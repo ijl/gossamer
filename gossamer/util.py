@@ -19,7 +19,7 @@ from selenium import webdriver  # pylint: disable=F0401
 from gossamer import exc
 
 from gossamer.constant import modes,  DEFAULT_DIFFCOLOR, \
-    REMOTE_WEBDRIVER_URL, DATA_VERSION
+    DEFAULT_WEBDRIVER, DATA_VERSION
 
 def logger(name, level=None):
     """
@@ -164,17 +164,14 @@ def check_driver(url):
     return code in (200, 301, 302)
 
 
-def get_driver(browser, local_webdriver=None, remote_webdriver=None):
+def get_driver(browser, selenium=None):
     """
     Get a webdriver. The caller is responsible for closing the driver.
 
     Browser is required. Local and remote are optional, with remote
     taking precedence.
     """
-    if local_webdriver and not remote_webdriver:
-        driver_url = local_webdriver
-    else:
-        driver_url = remote_webdriver or REMOTE_WEBDRIVER_URL
+    driver_url = selenium or DEFAULT_WEBDRIVER
     try:
         driver = webdriver.Remote(driver_url, CAPABILITIES[browser])
     except KeyError:
