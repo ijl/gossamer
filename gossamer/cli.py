@@ -186,6 +186,14 @@ def initialize(
     results = {}
     errs = {}
 
+    if mode == modes.RECORD:
+        sys.stdout.write('Recording...\n\n')
+    elif mode == modes.RERECORD:
+        sys.stdout.write('Rerecording...\n\n')
+    elif mode == modes.PLAYBACK:
+        sys.stdout.write('Playing back tests...\n\n')
+    sys.stdout.flush()
+
     driver = None
     try:
         for key, test in tests.items():
@@ -222,12 +230,12 @@ def initialize(
             if errors > 0:
                 msg.append('errors=%s' % errors)
             sys.stdout.write(
-                'FAILED (%s)\n' % ', '.join(msg)
+                '\nFAILED (%s)\n' % ', '.join(msg)
             )
             sys.stdout.flush()
             return exits.FAILED
         else:
-            sys.stdout.write('OK\n')
+            sys.stdout.write('\nOK\n')
             sys.stdout.flush()
             return exits.OK
     return exits.OK
