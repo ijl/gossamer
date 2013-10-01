@@ -11,7 +11,7 @@ import time
 
 from selenium.common.exceptions import WebDriverException
 
-from gossamer.constant import states, DATA_VERSION
+from gossamer.constant import states, modes, DATA_VERSION
 from gossamer.step import Screenshot, Click, Key, Scroll, Text, \
     Navigate, Dropdown, KeyParams, ClickParams
 from gossamer.data import Point, Test
@@ -108,10 +108,8 @@ def _process_steps(steps, events, start_time): # pylint: disable=R0912
             last_screenshot_time = step.offset_time
         if isinstance(step, Key):
             if i != length and step.key != '\t' and isinstance(steps[i+1], Key):
-                util.log.debug('Skipping key %s' % Key)
                 continue
             else:
-                util.log.debug('Adding key %s' % Key)
                 # tab keyup carries the element of the new field, so go back one
                 step = step if step.key != '\t' else (steps[i-1] if i != 0 else None)
                 if step is not None:
@@ -235,9 +233,6 @@ def record(driver, settings, output):
         raise exc.TestError('Event-capturing script was unresponsive.')
 
     steps = _process_steps(steps + navs, events, start_time)
-    for step in steps:
-        util.log.debug('Step: %r', step)
-
     record = Test( # pylint: disable=W0621
         version = DATA_VERSION,
         settings = settings,
@@ -259,10 +254,10 @@ def rerecord(driver, settings, record, output): # pylint: disable=W0621
     """
     Rerecord a given test. :func:`.playback` handles it based on mode.
     """
-    return playback(driver, settings, record, output)
+    return playback(driver, settings, record, output, modes.RERECORD)
 
 
-def playback(driver, settings, record, output): # pylint: disable=W0621,R0912
+def playback(driver, settings, record, output, mode=None): # pylint: disable=W0621,R0912
     """
     Playback a given test.
     """
@@ -273,9 +268,10 @@ def playback(driver, settings, record, output): # pylint: disable=W0621,R0912
 
     _begin_browsing(driver, settings)
     wait_until_loaded(driver)
-
     state = states.OK
     err = None
+    mode = mode or modes.PLAYBACK
+
     try:
         for step in record.steps:
             step.delayer(driver)
@@ -283,7 +279,7 @@ def playback(driver, settings, record, output): # pylint: disable=W0621,R0912
             while timeout < 40:
                 timeout += 1
                 if not driver.execute_script(js.isPageChanging(250)): # milliseconds
-                    step.execute(driver, settings)
+                    step.execute(driver, settings, mode)
                     break
                 else:
                     time.sleep(0.25)

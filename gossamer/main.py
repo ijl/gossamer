@@ -38,7 +38,7 @@ def dispatch(driver, mode, tests, output=None, stop_on_error=False):
                 break
             result_log[name] = result
             error_log[name] = err
-            if mode == modes.RECORD:
+            if mode in (modes.RECORD, modes.RERECORD):
                 util.write_recorded_run(test.settings.path, result)
     except exc.NoScreenshotsRecorded:
         raise

@@ -33,7 +33,7 @@ class TestStep(object): # pylint: disable=R0903
         """
         time.sleep(0.25)
 
-    def execute(self, driver, settings):
+    def execute(self, driver, settings, mode):
         """
         Called during :func:`.run.playback` or :func:`.run.rerecord`.
         """
@@ -115,7 +115,7 @@ class Navigate(TestStep): # pylint: disable=R0903
         super(Navigate, self).__init__(offset_time)
         self.url = url
 
-    def execute(self, driver, settings):
+    def execute(self, driver, settings, mode):
         from gossamer.run import navigate, wait_until_loaded
         util.log.debug('Navigating to %s', self.url)
         navigate(driver, (self.url, None))
@@ -136,7 +136,7 @@ class Click(TestStep): # pylint: disable=R0903
         super(Click, self).__init__(offset_time)
         self.pos = pos
 
-    def execute(self, driver, settings):
+    def execute(self, driver, settings, mode):
         util.log.debug("Clicking %s", self.pos)
         # Work around multiple bugs in WebDriver's implementation of click()
         driver.execute_script(
@@ -151,13 +151,16 @@ class Dropdown(TestStep, FindElementMixin, ElementIdentifierMixin): # pylint: di
 
     playback = True
 
-    def __init__(self, offset_time, pos, eid, ecn, ecl): # pylint: disable=R0913
+    def __init__(self, offset_time, pos=None,
+        eid=[None, None], ecn=[None, None], ecl=[None, None],
+        identifier=None, identifier_type=None, value=None
+        ): # pylint: disable=R0913
         super(Dropdown, self).__init__(offset_time)
         self.pos = pos
 
-        self.identifier = None
-        self.identifier_type = None
-        self.value = None
+        self.identifier = identifier
+        self.identifier_type = identifier_type
+        self.value = value
 
         self.eid = eid[0]
         self.eid_val = eid[1]
@@ -166,9 +169,12 @@ class Dropdown(TestStep, FindElementMixin, ElementIdentifierMixin): # pylint: di
         self.ecl = ecl[0]
         self.ecl_val = ecl[1]
 
-        self._process_identifiers_and_values()
+        # this is because we don't use a separate step for a processed
+        # Dropdown. todo.
+        if not (identifier and identifier_type and value):
+            self._process_identifiers_and_values()
 
-    def execute(self, driver, settings):
+    def execute(self, driver, settings, mode):
         util.log.debug(
             "Selecting '%s' into '%s' by %s",
             self.value, self.identifier, self.identifier_type
@@ -227,7 +233,7 @@ class Text(TestStep, FindElementMixin): # pylint: disable=R0903
         """
         time.sleep(1)
 
-    def execute(self, driver, settings):
+    def execute(self, driver, settings, mode):
         util.log.debug(
             "Text '%s' into element '%s' by %s",
             self.value, self.identifier, self.identifier_type
@@ -259,11 +265,11 @@ class Screenshot(TestStep):
         """
         return os.path.join(settings.path, 'screenshot' + str(self.num) + '.png')
 
-    def execute(self, driver, settings):
+    def execute(self, driver, settings, mode):
         util.log.debug("Taking screenshot %s", self.num)
         original = self.get_path(settings)
         new = os.path.join(settings.path, 'last', 'screenshot%s.png' % self.num)
-        if settings.mode == modes.RERECORD:
+        if mode in (modes.RECORD, modes.RERECORD):
             driver.save_screenshot(original)
         else:
             driver.save_screenshot(new)
@@ -292,7 +298,7 @@ class Scroll(TestStep): # pylint: disable=R0903
         super(Scroll, self).__init__(offset_time)
         self.pos = pos
 
-    def execute(self, driver, settings):
+    def execute(self, driver, settings, mode):
         util.log.debug("Scrolling to %s", self.pos)
         driver.execute_script("window.scrollBy(%s, %s)" % (self.pos.x, self.pos.y))
 

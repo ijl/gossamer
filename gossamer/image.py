@@ -91,13 +91,12 @@ def image_diff(path1, path2, outpath, diffcolor):
         raise NotImplementedError('Unexpected PNG mode')
 
     width, height = im1.size
-
-    for y in xrange(height):
-        for x in xrange(width):
+    for y in range(height):
+        for x in range(width):
             if pix1[x, y] != pix2[x, y]:
                 pix2[x, y] = value
-    im2.save(outpath)
 
+    im2.save(outpath)
     return (rmsdiff, width, height)
 
 

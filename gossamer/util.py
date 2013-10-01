@@ -356,7 +356,7 @@ def make_tests(test_files, mode, data_dir, rewrite_url=None, **kwargs): # pylint
                     diffcolor=diffcolor,
                     save_diff=kwargs.pop('save_diff', None),
                     cookies=cookies,
-                    expect_redirect=test_config.get('expect_redirect', None)
+                    expect_redirect=test_config.get('expect_redirect', False)
                 )
 
             else:
