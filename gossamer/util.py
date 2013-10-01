@@ -53,21 +53,6 @@ def null_writer(content=None, flush=False): # pylint: disable=W0613
     pass
 
 
-DRIVERS = {
-    'firefox': webdriver.Firefox,
-    'chrome': webdriver.Chrome,
-    'ie': webdriver.Ie,
-    'opera': webdriver.Opera
-}
-
-CAPABILITIES = {
-    'firefox': webdriver.DesiredCapabilities.FIREFOX,
-    'chrome': webdriver.DesiredCapabilities.CHROME,
-    'ie': webdriver.DesiredCapabilities.INTERNETEXPLORER,
-    'opera': webdriver.DesiredCapabilities.OPERA
-}
-
-
 class Encoder(json.JSONEncoder):
     """
     Overriden JSON encoder for calling __json__.
@@ -153,6 +138,21 @@ def write_recorded_run(filename, output):
     return True
 
 
+DRIVERS = {
+    'firefox': webdriver.Firefox,
+    'chrome': webdriver.Chrome,
+    'ie': webdriver.Ie,
+    'opera': webdriver.Opera
+}
+
+CAPABILITIES = {
+    'firefox': webdriver.DesiredCapabilities.FIREFOX,
+    'chrome': webdriver.DesiredCapabilities.CHROME,
+    'ie': webdriver.DesiredCapabilities.INTERNETEXPLORER,
+    'opera': webdriver.DesiredCapabilities.OPERA
+}
+
+
 def check_driver(url):
     """
     For a Selenium Server URL, see if the server appears to be up.
@@ -206,6 +206,7 @@ def close_driver(driver):
         pass
     return True
 
+
 def prompt(display, options=None, testname=None):
     """
     Given text as `display` and optionally `options` as an
@@ -235,6 +236,19 @@ def _postdata(arg):
                 data = json.loads(f.read())
             return data
     return None
+
+
+def asbool(val):
+    """
+    Parse string to bool.
+    """
+    val = str(val.lower())
+    if val in ('1', 't', 'true', 'on'):
+        return True
+    elif val in ('0', 'f', 'false', 'off'):
+        return False
+    else:
+        raise ValueError()
 
 
 def verify_and_prepare_files(filename, testname, mode, overwrite): # pylint: disable=R0912
@@ -356,7 +370,7 @@ def make_tests(test_files, mode, data_dir, rewrite_url=None, **kwargs): # pylint
                     diffcolor=diffcolor,
                     save_diff=kwargs.pop('save_diff', None),
                     cookies=cookies,
-                    expect_redirect=test_config.get('expect_redirect', False)
+                    expect_redirect=asbool(test_config.get('expect_redirect', 'false'))
                 )
 
             else:
