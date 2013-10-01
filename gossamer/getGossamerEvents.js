@@ -12,8 +12,6 @@
             var isSelect = false;
             var idText, classNameText, classListText, elm = null;
             if (e.target.nodeName === "SELECT") { // dropdown
-                // asking for selectedIndex sometimes gives the default value
-                // so iterate through the element's options for selected===true
                 isSelect = true;
                 if (e.target.id) {
                     elm = document.querySelector('#' + e.target.id);

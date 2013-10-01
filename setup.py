@@ -16,7 +16,6 @@ if os.path.exists('README'):
 
 setup(
     name = 'gossamerui',
-    provides = 'gossamer',
     version = VERSION,
     packages=['gossamer', ],
     install_requires = [

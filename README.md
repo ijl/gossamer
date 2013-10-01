@@ -16,7 +16,7 @@ Python unittest integration.
 
 * Supports JavaScript, including single-page apps
 * Allows navigating to new pages
-* Records your clicks and text input
+* Records your clicks, text input, and dropdown selections
 * Supports setting cookies for authentication and settings
 * During playback, waits for the page to be stable before taking further
 actions, rather than deciding on the basis of time elapsed
