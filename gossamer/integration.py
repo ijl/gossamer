@@ -72,7 +72,7 @@ def run_gossamerfile(
         case._skip_allowed = skip_allowed # pylint: disable=W0212
         case._driver_ok = driver_ok # pylint: disable=W0212
         case.runTest = _nose_wrapper(
-            case, key, test, test.settings.browser, selenium, selenium
+            case, test, test.settings.browser, selenium
         )
         case._gossamer_test = test # pylint: disable=W0212
         case.runTest.__func__.__doc__ = test.settings.desc or test.settings.name # pylint: disable=E1101,C0301
@@ -87,16 +87,15 @@ def _nose_wrapper(self, *args): # pylint: disable=W0613
     return lambda x: _run_nose(x, *args)
 
 
-def _run_nose(self, name, test, browser, local, remote): # pylint: disable=R0913
+def _run_nose(self, test, browser, selenium): # pylint: disable=R0913
     """
     Run a test for Nose.
     """
     try:
-        driver = util.get_driver(browser, local, remote)
-        log = dispatch(
-            driver, modes.PLAYBACK, {name: test, }, output=util.null_writer
+        driver = util.get_driver(browser, selenium)
+        result, err = dispatch(
+            driver, modes.PLAYBACK,  test, output=util.null_writer
         )
-        result, err = [each[name] for each in log]
         if result == states.FAIL:
             if err is not None:
                 self.fail(str(err))

@@ -196,7 +196,6 @@ class CaptureEvents(object): # pylint: disable=R0903
         on a composite key of 'timestamp.action'. This is an ugly workaround
         for an apparent Selenium issue.
         """
-        util.log.debug('capture_events')
         timestamp = driver.execute_script(js.now)
         merges = driver.execute_script('return window._getGossamerEvents();')
         if type(merges) in (unicode, str) and merges.startswith(
@@ -207,8 +206,6 @@ class CaptureEvents(object): # pylint: disable=R0903
             if event[0] > self.timestamp:
                 events['%s.%s' % (str(event[0]), str(event[1]))] = event
         self.timestamp = timestamp
-        for event in events:
-            util.log.debug('event: %r' % event)
         return events
 
 

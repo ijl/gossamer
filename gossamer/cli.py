@@ -88,6 +88,11 @@ from gossamer import __version__
     verbose = plac.Annotation(
         'Verbosity, with -v as logging.DEBUG',
         'flag', 'v', 'verbose'
+    ),
+
+    stop_on_error = plac.Annotation(
+        'During playback, stop on error',
+        'flag', 't', 'stop'
     ) # pylint: disable=R0915,R0912,R0911,R0914
 )
 
@@ -106,7 +111,8 @@ def initialize(
         overwrite=False,
         data_dir=None,
         version=False,
-        verbose=False
+        verbose=False,
+        stop_on_error=False
     ): # pylint: disable=R0913,W0613
     """
     Gossamer CLI.
@@ -181,11 +187,6 @@ def initialize(
         sys.stdout.flush()
         return exits.RECORDED_RUN_ERROR
 
-    # let the user mix browsers within tests by switching if browser has changed
-    # this is really ugly, because main.dispatch assumes a batch of tests
-    results = {}
-    errs = {}
-
     if mode == modes.RECORD:
         sys.stdout.write('Recording...\n\n')
     elif mode == modes.RERECORD:
@@ -194,7 +195,10 @@ def initialize(
         sys.stdout.write('Playing back tests...\n\n')
     sys.stdout.flush()
 
+    results = {}
+    errs = {}
     driver = None
+
     try:
         for key, test in tests.items():
             if driver is not None:
@@ -208,9 +212,11 @@ def initialize(
                 return exits.ERROR
             # run the tests
             try:
-                result, err = dispatch(driver, mode, {key: test})
-                results.update(result)
-                errs.update(err)
+                result, err = dispatch(driver, mode, test)
+                results[key] = result
+                errs[key] = err
+                if (not result or result in (states.FAIL, states.ERROR)) and stop_on_error:
+                    break
             except exc.NoScreenshotsRecorded as exception:
                 sys.stdout.write(str(exception))
                 sys.stdout.flush()
