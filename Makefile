@@ -26,3 +26,4 @@ release:
 	make doc
 	make dist
 	git tag -a $(version) -m "Release $(version)"
+	rm README

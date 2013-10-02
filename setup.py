@@ -21,7 +21,7 @@ setup(
     install_requires = [
         'selenium >= 2.35.0',
         'plac == 0.9.1',
-        'pillow >= 2.1.0'
+        'pillow >= 2.2.1'
     ],
     classifiers=[
       'Development Status :: 4 - Beta',
