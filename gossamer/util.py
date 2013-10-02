@@ -201,6 +201,8 @@ def close_driver(driver):
         pass
     except AttributeError: # pragma: no cover
         pass
+    except WebDriverException: # pragma: no cover
+        pass
     return True
 
 
