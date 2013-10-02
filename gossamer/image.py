@@ -7,6 +7,7 @@ Compare screenshots taken via the webdriver.
 # https://www.apache.org/licenses/LICENSE-2.0
 
 import math
+import operator
 
 try:
     # Pillow
@@ -24,12 +25,18 @@ from gossamer import util, exc
 
 def allowance(browser):
     """
-    Our image diffs below give some false alarms of diffs. For the browser
-    Chrome, which takes screenshots limited to screensize, a value of at least
-    573 is always seen. For Firefox, which takes screenshots the width of
-    the actual screensize and the height of the document, 958.
+    Our image diffs below give some false alarms of diffs... The values
+    below are rmsdiff values for 100%-same ImageChops histograms (i.e.,
+    ImageChops' bounding box method showed no difference), and for
+    trivial rendering differences, e.g., a pixel within a button gradient
+    differing, or rendered text differing very slightly, we add a slight
+    allowance.
     """
-    margins = {'default': 573, 'chrome': 573, 'firefox': 958}
+    margins = {
+        'default': 572.4334022399462*1.0001,
+        'chrome': 572.4334022399462*1.0001,
+        'firefox': 957.864291014*1.0001
+    }
     try:
         return margins[browser]
     except KeyError:
@@ -41,14 +48,22 @@ def images_identical(path1, path2, margin=None):
     Hacky test of images being identical. PIL can show incorrect diffs.
     """
     util.log.debug('images_identical: %s, %s', path1, path2)
-    margin = margin or 0
+
     im1 = Image.open(path1)
     im2 = Image.open(path2)
-    rmsdiff = _rmsdiff_2011(im1, im2)
-    if rmsdiff <= margin:
-        return True
+    if ImageChops.difference(im1, im2).getbbox() is None:
+        util.log.debug('images_identical: bounding box ok')
+        identical = True
     else:
-        return False
+        rmsdiff = _rmsdiff_2011(im1, im2)
+        margin = margin or 0
+        if rmsdiff <= margin:
+            util.log.debug('images_identical: rmsdiff %s ok' % rmsdiff)
+            identical = True
+        else:
+            util.log.debug('images_identical: rmsdiff %s failed' % rmsdiff)
+            identical = False
+    return identical
 
 
 def image_diff(path1, path2, outpath, diffcolor):
@@ -58,7 +73,6 @@ def image_diff(path1, path2, outpath, diffcolor):
     """
     im1 = Image.open(path1)
     im2 = Image.open(path2)
-
     rmsdiff = _rmsdiff_2011(im1, im2)
 
     pix1 = im1.load()
@@ -76,7 +90,6 @@ def image_diff(path1, path2, outpath, diffcolor):
         )
 
     mode = im1.mode
-
     if mode == '1':
         value = 255
     elif mode == 'L':
@@ -102,10 +115,12 @@ def image_diff(path1, path2, outpath, diffcolor):
 
 def _rmsdiff_2011(im1, im2):
     "Calculate the root-mean-square difference between two images"
-    diff = ImageChops.difference(im1, im2)
-    h = diff.histogram()
-    sq = (value * (idx ** 2) for idx, value in enumerate(h))
-    sum_of_squares = sum(sq)
-    rms = math.sqrt(sum_of_squares / float(im1.size[0] * im1.size[1]))
-    util.log.debug('rmsdiff: %s', rms)
+    h = ImageChops.difference(im1, im2).histogram()
+    rms = math.sqrt(
+        reduce(
+            operator.add,
+            map(lambda h, i: h*(i**2), h, range(len(h))) # pylint: disable=W0110,W0141
+        ) / (float(im1.size[0]) * im1.size[1])
+    )
     return rms
+

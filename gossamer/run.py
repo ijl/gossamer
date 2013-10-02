@@ -189,6 +189,7 @@ class CaptureEvents(object): # pylint: disable=R0903
 
     def __init__(self, timestamp):
         self.timestamp = timestamp
+        self.retry = 3
 
     def __call__(self, driver, events):
         """
@@ -197,10 +198,19 @@ class CaptureEvents(object): # pylint: disable=R0903
         for an apparent Selenium issue.
         """
         timestamp = driver.execute_script(js.now)
-        merges = driver.execute_script('return window._getGossamerEvents();')
+        try:
+            merges = driver.execute_script('return window._getGossamerEvents();')
+        except WebDriverException as exception:
+            if exception.msg.startswith('window._getGossamerEvents is not a function'):
+                # navigation
+                _load_initial_js(driver)
+                self.retry -= 1
+                if self.retry > 0:
+                    return self(driver, events)
+            raise
         if type(merges) in (unicode, str) and merges.startswith(
-                                        'A script on this page may be busy, '
-                                        'or it may have stopped responding.'):
+                                        'A script on this page may be busy, or '
+                                        'it may have stopped responding.'):
             raise exc.TestError('Event-capturing script was unresponsive.')
         for event in merges:
             if event[0] > self.timestamp:
@@ -226,8 +236,6 @@ def record(driver, settings, output):
             "or type Q if you're done.", ('Q', 'q'), testname=settings.name):
             break
         events = get_events(driver, events)
-        util.log.debug('events: %r' % events)
-
         # detect page changes
         if _has_page_changed(url, driver.current_url):
             if (not len(navs) and not settings.expect_redirect):
@@ -240,6 +248,7 @@ def record(driver, settings, output):
                 )
             url = driver.current_url
             _load_initial_js(driver)
+        events = get_events(driver, events)
 
         # take screenshot
         output('Taking screenshot ... ', flush=True)
