@@ -32,10 +32,11 @@ def allowance(browser):
     differing, or rendered text differing very slightly, we add a slight
     allowance.
     """
+    margin = 1.001
     margins = {
-        'default': 572.4334022399462*1.0001,
-        'chrome': 572.4334022399462*1.0001,
-        'firefox': 957.864291014*1.0001
+        'default': 572.4334022399462*margin,
+        'chrome': 572.4334022399462*margin,
+        'firefox': 957.864291014*margin
     }
     try:
         return margins[browser]

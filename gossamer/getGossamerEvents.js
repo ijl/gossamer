@@ -5,7 +5,6 @@
 
     var events = [];
 
-    // see also the 'input' listener
     window.addEventListener(
         'click',
         function (e) {

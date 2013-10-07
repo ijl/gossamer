@@ -15,7 +15,7 @@ Python unittest integration.
 
 Gossamer is a command-line application, called with `gossamer`. You create
 tests you wish to record in a text Gossamerfile. For each test, a WebDriver
-windowis opened and you interact with the browser as a normal user, going
+window is opened and you interact with the browser as a normal user, going
 back to the command line when you wish to take a screenshot and pressing
 enter. Your screenshots, and a JSON record of your test, is written to a
 data directory. Playback is done by reading this directory, and comparing
@@ -58,19 +58,6 @@ If your UI has changed and you wish to update the screenshots to match, then
 run with `--rerecord`: the test will be rerun automatically, and new PNGs
 will be saved. To playback the tests, simply call without an `-r/-rr` flag.
 
-Further command-line options:
-
-* `--browser/-b`: browser to use
-
-* `--save-diff/-e`: when two images don't match, save a diff.png which
-    highlights pixels that differ
-* `--overwrite/-o`: when recording tests, don't prompt about overwriting data
-* `--selenium/-s`: URL to Selenium Server
-
-Command-line options take precedence over Gossamerfile options. During playback,
-command-line or Gossamerfile options affecting the test itself are ignored;
-only the Selenium server to test against and data directory can be changed.
-
 If you're running Python tests, you can integrate your Gossamer tests like so:
 
     # myapp/test.py
@@ -86,8 +73,7 @@ server and test webserver are up when your tests are run.
 
 Your testing machine will need
 [Pillow's](https://github.com/python-imaging/Pillow) system-level
-dependencies for PNG support (namely `zlib1g-dev`, on Ubuntu, and Python
-dev). Gossamer can then be installed from PyPi with `pip install gossamerui`.
+dependencies for PNG support. Gossamer can then be installed from PyPi with `pip install gossamerui`.
 
 On that machine or another accessible to it you will need
 [Selenium Server](http://docs.seleniumhq.org/download/) installed and

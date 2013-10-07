@@ -4,7 +4,6 @@
 // If so, the page is returned as still-changing, and Gossamer polls again.
 (function() {
     "use strict";
-    window._gossamerLastModified = Date.now();
     var _XMLHttpRequest = XMLHttpRequest.prototype.open;
     window._gossamerXMLHTTPs = 0;
     XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
@@ -20,6 +19,7 @@
 
 (function() {
     "use strict";
+    window._gossamerLastModified = Date.now();
     window._gossamerIsPageChanging = function(timeout) {
         return timeout > ( Date.now() - window._gossamerLastModified )
              && window._gossamerXMLHTTPs === 0;
