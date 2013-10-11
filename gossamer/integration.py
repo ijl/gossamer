@@ -56,12 +56,11 @@ def run_gossamerfile(
         gossamerfile = [val for _, val in gossamerfile.items()]
 
     selenium = selenium or DEFAULT_WEBDRIVER
-    options = {'local': selenium, 'remote': selenium}
 
     driver_ok = util.check_driver(selenium)
 
     tests = util.make_tests(
-        gossamerfile, modes.PLAYBACK, data_dir, rewrite_url=rewrite_url, **options
+        gossamerfile, modes.PLAYBACK, data_dir, rewrite_url=rewrite_url
     )
     for key, test in tests.items():
         case = type(
@@ -71,42 +70,11 @@ def run_gossamerfile(
         )
         case._skip_allowed = skip_allowed # pylint: disable=W0212
         case._driver_ok = driver_ok # pylint: disable=W0212
-        case.runTest = _nose_wrapper(
-            case, test, test.settings.browser, selenium
-        )
+        case._args = (test, test.settings.browser, selenium)
         case._gossamer_test = test # pylint: disable=W0212
         case.runTest.__func__.__doc__ = test.settings.desc or test.settings.name # pylint: disable=E1101,C0301
         client_locals['GossamerTest_%s' % key] = case
     return True
-
-
-def _nose_wrapper(self, *args): # pylint: disable=W0613
-    """
-    Creates GossamerTestCase methods that will themselves run the tests.
-    """
-    return lambda x: _run_nose(x, *args)
-
-
-def _run_nose(self, test, browser, selenium): # pylint: disable=R0913
-    """
-    Run a test for Nose.
-    """
-    try:
-        driver = util.get_driver(browser, selenium)
-        result, err = dispatch(
-            driver, modes.PLAYBACK,  test, output=util.null_writer
-        )
-        if result == states.FAIL:
-            if err is not None:
-                self.fail(str(err))
-            else:
-                self.fail('Screenshots were different.')
-        elif result == states.ERROR:
-            if err is not None:
-                raise err
-            raise exc.TestError() # todo
-    finally:
-        util.close_driver(driver)
 
 
 class GossamerTestCase(unittest.TestCase): # pylint: disable=R0904
@@ -117,6 +85,7 @@ class GossamerTestCase(unittest.TestCase): # pylint: disable=R0904
     _skip_allowed = True
     _driver_ok = True
     _gossamer_test = None
+    _args = ()
 
     def setUp(self):
         super(GossamerTestCase, GossamerTestCase()).setUp()
@@ -130,6 +99,22 @@ class GossamerTestCase(unittest.TestCase): # pylint: disable=R0904
 
     def runTest(self):
         """
-        Replaced within :func:`run_gossamerfile`.
+        Gossamer test
         """
-        pass
+        test, browser, selenium = self._args
+        try:
+            driver = util.get_driver(browser, selenium)
+            result, err = dispatch(
+                driver, modes.PLAYBACK,  test, output=util.null_writer
+            )
+            if result == states.FAIL:
+                if err is not None:
+                    self.fail(str(err))
+                else:
+                    self.fail('Screenshots were different.')
+            elif result == states.ERROR:
+                if err is not None:
+                    raise err
+                raise exc.TestError() # todo
+        finally:
+            util.close_driver(driver)

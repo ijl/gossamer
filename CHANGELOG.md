@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.5
+
+* Fix Python `unittest` integration
+
+* Misc fixes and improvements
+
 ## 0.9.4
 
 * Fix events not being saved unless an initial screenshot was taken.
